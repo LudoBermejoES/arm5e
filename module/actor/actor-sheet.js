@@ -481,6 +481,7 @@ export class ArM5eActorSheet extends ActorSheet {
         event.preventDefault();
         const element = event.currentTarget;
         const dataset = element.dataset;
+        debugger;
 
         if (this.actor.data.data.wounds.dead.number > 0) {
             ui.notifications.info(game.i18n.localize("arm5e.notification.dead"), {
