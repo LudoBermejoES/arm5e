@@ -680,7 +680,11 @@ export class ArM5eActorSheet extends ActorSheet {
             template = "systems/arm5e/templates/roll/roll-spell.html";
             this.actor.data.data.roll.characteristic = "sta";
         }
-        7
+
+        if(dataset.roll == 'ability' && dataset.defaultcharacteristicforability) {
+            this.actor.data.data.roll.characteristic = dataset.defaultcharacteristicforability;
+        }
+
         if (template != "") {
             // render template
             renderTemplate(template, this.actor.data).then(function(html) {
