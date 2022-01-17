@@ -509,7 +509,7 @@ export class ArM5eActorSheet extends ActorSheet {
             this.actor.data.data.roll.technique = "";
             this.actor.data.data.roll.form = "";
             this.actor.data.data.roll.total = "";
-            this.actor.data.data.roll.aura = 0;
+            this.actor.data.data.roll.aura = this.actor?.data?.data?.arts?.aura || 0;
             this.actor.data.data.roll.bonus = 0;
             this.actor.data.data.roll.divide = 1;
             this.actor.data.data.roll.rollLabel = "";
@@ -551,7 +551,6 @@ export class ArM5eActorSheet extends ActorSheet {
             if (dataset.roll == "spell" || dataset.roll == "magic" || dataset.roll == "spont") {
                 if (dataset.id) {
                     this.actor.data.data.roll.effectId = dataset.id;
-
                     this.actor.data.data.roll.spell = this.actor.data.items.get(dataset.id);
                     let techData = this.actor.data.data.roll.spell._getTechniqueData(this.actor.data);
                     this.actor.data.data.roll.techniqueText = techData[0];
@@ -598,6 +597,7 @@ export class ArM5eActorSheet extends ActorSheet {
                 if (dataset.gestures) {
                     this.actor.data.data.roll.gestures = Number(dataset.gestures);
                 }
+
                 // if (dataset.ritual) {
                 //     if ((dataset.ritual) == "false") {
                 //         this.actor.data.data.roll.ritual = false;

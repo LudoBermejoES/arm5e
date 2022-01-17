@@ -308,6 +308,9 @@
                     "gestures": {
                         "value": 0
                     },
+                    "aura": {
+                        "value": 0
+                    },
                     "techniques": {
                         "cr": {
                             "label": "Creo",
