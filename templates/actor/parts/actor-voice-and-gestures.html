@@ -1,0 +1,25 @@
+    <div class="characteristics grid grid-2col backSection margintop18">
+        <div class="flexrow flex-group-left">
+            <label for="data.arts.voice.value" class="item-title width1">{{localize "arm5e.sheet.magic.voice"}}</label>
+            {{#select data.arts.voice.value}}
+                <select name="data.arts.voice.value" data-type="Number">
+                    <option value="1">{{localize "arm5e.sheet.magic.voiceType.loud"}}</option>
+                    <option value="0">{{localize "arm5e.sheet.magic.voiceType.firm"}}</option>
+                    <option value="-5">{{localize "arm5e.sheet.magic.voiceType.quiet"}}</option>
+                    <option value="-10">{{localize "arm5e.sheet.magic.voiceType.none"}}</option>
+                </select>
+            {{/select}}
+        </div>
+        <div class="flexrow flex-group-left">
+            <label for="data.arts.gestures.value" class="item-title width1">{{localize "arm5e.sheet.magic.gestures"}}</label>
+            {{#select data.arts.gestures.value}}
+            <select name="data.arts.gestures.value" data-type="Number">
+                <option value="1">{{localize "arm5e.sheet.magic.gesturesType.exaggerated"}}</option>
+                <option value="0">{{localize "arm5e.sheet.magic.gesturesType.bold"}}</option>
+                <option value="-5">{{localize "arm5e.sheet.magic.gesturesType.subtle"}}</option>
+                <option value="-10">{{localize "arm5e.sheet.magic.gesturesType.none"}}</option>
+            </select>
+            {{/select}}
+        </div>
+    </div>
+

@@ -481,7 +481,6 @@ export class ArM5eActorSheet extends ActorSheet {
         event.preventDefault();
         const element = event.currentTarget;
         const dataset = element.dataset;
-        debugger;
 
         if (this.actor.data.data.wounds.dead.number > 0) {
             ui.notifications.info(game.i18n.localize("arm5e.notification.dead"), {
@@ -590,6 +589,14 @@ export class ArM5eActorSheet extends ActorSheet {
                 }
                 if (dataset.mform) {
                     this.actor.data.data.roll.form = dataset.mform;
+                }
+
+                if (dataset.voice) {
+                    this.actor.data.data.roll.voice = Number(dataset.voice);
+                }
+
+                if (dataset.gestures) {
+                    this.actor.data.data.roll.gestures = Number(dataset.gestures);
                 }
                 // if (dataset.ritual) {
                 //     if ((dataset.ritual) == "false") {

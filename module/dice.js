@@ -289,6 +289,25 @@ function getRollFormula(actor) {
         msg = msg + "Bonus (" + actorData.roll.bonus + ")";
     }
 
+    debugger;
+    if (actorData.roll.voice != '') {
+        total = total + actorData.roll.voice
+        if (msg != "") {
+            msg = msg + " + <br />";
+        }
+        msg = msg + game.i18n.localize("arm5e.sheet.magic.voice");
+        msg = msg + " (" + actorData.roll.voice + ")";
+    }
+
+    if (actorData.roll.gestures != '') {
+        total = total + actorData.roll.gestures
+        if (msg != "") {
+            msg = msg + " + <br />";
+        }
+        msg = msg + game.i18n.localize("arm5e.sheet.magic.gestures");
+        msg = msg + " (" + actorData.roll.gestures + ")";
+    }
+
     if (actorData.roll.useFatigue == true) {
 
         if (actorData.fatigueTotal != 0) {

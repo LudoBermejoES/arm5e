@@ -78,6 +78,7 @@
 </div>
 </div>
 
+{{> "systems/arm5e/templates/actor/parts/actor-voice-and-gestures.html" show="arts" }}
 {{> "systems/arm5e/templates/actor/parts/actor-laboratoryTotals.html" show="arts" }}
 
 
@@ -98,7 +99,7 @@
         {{#each data.spells as |item id|}}
             <li class="item item-value flexrow" data-item-id="{{item._id}}" data-attribute="{{id}}">
                 <div class="flexrow flex-center">
-                    <span class="flexrow item-title width4 rollable" data-roll="spell" data-id="{{item._id}}" data-technique="{{item.data.technique.value}}" data-mform="{{item.data.form.value}}" data-bonus="{{ item.data.bonus }}" data-bonus2="{{ item.data.mastery }}" data-name="{{item.name}}" name="item.name">
+                    <span class="flexrow item-title width4 rollable" data-roll="spell" data-id="{{item._id}}" data-technique="{{item.data.technique.value}}" data-voice="{{../data.arts.voice.value}}" data-gestures="{{../data.arts.gestures.value}}" data-mform="{{item.data.form.value}}" data-bonus="{{ item.data.bonus }}" data-bonus2="{{ item.data.mastery }}" data-name="{{item.name}}" name="item.name">
                         {{item.name}} ( {{#with (lookup @root.metadata.magic.techniques item.data.technique.value)~}}{{label~}}
                         {{/with}}
                         {{#with (lookup @root.metadata.magic.forms item.data.form.value)~}}{{label~}}

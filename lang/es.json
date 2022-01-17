@@ -1,7 +1,7 @@
 {
     "arm5e.sheet.player": "Jugador",
     "arm5e.sheet.npc": "PNJ",
-
+    "arm5e.spell.applyFocus": "¿Foco mágico aplicable?",
     "arm5e.sheet.charType": "Tipo PJ",
     "arm5e.sheet.age": "Edad",
     "arm5e.sheet.season": "Estación",
@@ -191,6 +191,19 @@
     "arm5e.sheet.multipleCasting": "Lanzamiento Múltiple",
     "arm5e.sheet.basicLabTotal": "Total Básico Laboratorio",
     "arm5e.sheet.visLimit": "Límite de vis",
+
+    "arm5e.sheet.magic.gesturesType.exaggerated": "Vigorosos",
+    "arm5e.sheet.magic.gesturesType.bold": "Vehementes",
+    "arm5e.sheet.magic.gesturesType.subtle": "Sutiles",
+    "arm5e.sheet.magic.gesturesType.none": "Ninguna",
+
+    "arm5e.sheet.magic.voiceType.loud": "Atronadora",
+    "arm5e.sheet.magic.voiceType.firm": "Firme",
+    "arm5e.sheet.magic.voiceType.quiet": "Tenue",
+    "arm5e.sheet.magic.voiceType.none": "Ninguna",
+
+    "arm5e.sheet.magic.voice": "Voz",
+    "arm5e.sheet.magic.gestures": "Gestos",
 
     "arm5e.sheet.setAbilities": "Por favor, escoge las habilidades que se corresponden con la etiqueta. De esta manera, el sistema puede realizar todos los cálculos correctamente. Si no tienes alguna habilidad, créala dejandola a cero y después asignala donde corresponde.",
     "arm5e.skill.finesse": "Precisión",

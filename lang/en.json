@@ -2,6 +2,18 @@
     "arm5e.sheet.player": "Player",
     "arm5e.sheet.npc": "NPC",
     "arm5e.sheet.laboratory": "Laboratory",
+    "arm5e.sheet.magic.gesturesType.exaggerated": "Exaggerated",
+    "arm5e.sheet.magic.gesturesType.bold": "Bold",
+    "arm5e.sheet.magic.gesturesType.subtle": "Subtle",
+    "arm5e.sheet.magic.gesturesType.None": "None",
+
+    "arm5e.sheet.magic.voiceType.loud": "Loud",
+    "arm5e.sheet.magic.voiceType.firm": "Firm",
+    "arm5e.sheet.magic.voiceType.quiet": "Quiet",
+    "arm5e.sheet.magic.voiceType.none": "None",
+
+    "arm5e.sheet.magic.voice": "Voice",
+    "arm5e.sheet.magic.gestures": "Gestures",
 
     "arm5e.sheet.charType": "Type",
     "arm5e.sheet.age": "Age",

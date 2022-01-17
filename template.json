@@ -302,6 +302,12 @@
             },
             "arts": {
                 "arts": {
+                    "voice": {
+                        "value": 0
+                    },
+                    "gestures": {
+                        "value": 0
+                    },
                     "techniques": {
                         "cr": {
                             "label": "Creo",
