@@ -113,6 +113,17 @@ function getRollFormula(actor) {
     if (actorData.roll.type == "spell" || actorData.roll.type == "magic" || actorData.roll.type == "spont") {
         let valueTech = 0
         let valueForm = 0
+
+        if (actorData.roll.aura != "" && actorData.roll.aura != 0) {
+            value = actorData.roll.aura
+            total = parseInt(total) + parseInt(value);
+            if (msg != "") {
+                msg = msg + " + <br />";
+            }
+            msg = msg + "Aura";
+            msg = msg + " (" + value + ")";
+        }
+
         if (actorData.roll.type == "spell") {
             valueTech = actorData.roll.techniqueScore;
             valueForm = actorData.roll.formScore;
@@ -194,16 +205,6 @@ function getRollFormula(actor) {
             total = parseInt(total) + 1;
             msg = msg + " ( + 1 " + game.i18n.localize("arm5e.sheet.speciality") + " )";
         }
-    }
-
-    if (actorData.roll.aura != "" && actorData.roll.aura != 0) {
-        value = actorData.roll.aura
-        total = parseInt(total) + parseInt(value);
-        if (msg != "") {
-            msg = msg + " + <br />";
-        }
-        msg = msg + "Aura";
-        msg = msg + " (" + value + ")";
     }
 
     if (actorData.roll.ritual === true) {
@@ -290,7 +291,7 @@ function getRollFormula(actor) {
     }
 
     debugger;
-    if (actorData.roll.voice != '') {
+    if (actorData.roll.voice) {
         total = total + actorData.roll.voice
         if (msg != "") {
             msg = msg + " + <br />";
@@ -299,7 +300,7 @@ function getRollFormula(actor) {
         msg = msg + " (" + actorData.roll.voice + ")";
     }
 
-    if (actorData.roll.gestures != '') {
+    if (actorData.roll.gestures) {
         total = total + actorData.roll.gestures
         if (msg != "") {
             msg = msg + " + <br />";
