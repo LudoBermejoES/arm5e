@@ -289,8 +289,7 @@ function getRollFormula(actor) {
         msg = msg + "Bonus (" + actorData.roll.bonus + ")";
     }
 
-    debugger;
-    if (actorData.roll.voice != '') {
+    if (actorData.roll.voice) {
         total = total + actorData.roll.voice
         if (msg != "") {
             msg = msg + " + <br />";
@@ -299,7 +298,7 @@ function getRollFormula(actor) {
         msg = msg + " (" + actorData.roll.voice + ")";
     }
 
-    if (actorData.roll.gestures != '') {
+    if (actorData.roll.gestures) {
         total = total + actorData.roll.gestures
         if (msg != "") {
             msg = msg + " + <br />";
