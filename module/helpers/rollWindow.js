@@ -2,15 +2,6 @@ import {ARM5E} from "../metadata.js";
 import {findAllActiveEffectsByType} from "./effects.js";
 import ACTIVE_EFFECTS_TYPES from "../constants/activeEffectsTypes.js";
 import {simpleDie, stressDie} from "../dice.js";
-import {getActorsFromTargetedTokens} from "./tokens.js";
-import {calculateSuccessOfMagic} from "./magic.js";
-import {chatContestOfMagic} from "./chat.js";
-
-const CALL_BACK_AFTER_ROLL = {
-    SPELL: {
-        CALLBACK: checkTargetAndCalculateResistante,
-    }
-}
 
 const STRESS_DIE = {
     MAGIC: {
@@ -200,29 +191,29 @@ function prepareRollFields(dataset, actorData) {
 }
 
 function cleanBooleans(dataset, actorData) {
-    // clean booleans
-    if (actorData.data.roll.useFatigue === "false") {
-        actorData.data.roll.useFatigue = false;
-    }
-    if (actorData.data.roll.useFatigue === "false") {
-        actorData.data.roll.useFatigue = false;
-    }
+  // clean booleans
+  if (actorData.data.roll.useFatigue === "false") {
+    actorData.data.roll.useFatigue = false;
+  }
+  if (actorData.data.roll.useFatigue === "false") {
+    actorData.data.roll.useFatigue = false;
+  }
 }
 
 function chooseTemplate(dataset) {
-    if (dataset.roll == "combat" || dataset.roll == "option" || dataset.roll == "general") {
-        return "systems/arm5e/templates/roll/roll-options.html";
-    }
-    if (dataset.roll == "char" || dataset.roll == "ability") {
-        return "systems/arm5e/templates/roll/roll-characteristic.html";
-    }
-    if (dataset.roll == "spont") {
-        //spontaneous magic
-        return "systems/arm5e/templates/roll/roll-magic.html";
-    }
-    if (dataset.roll == "magic" || dataset.roll == "spell") {
-        return "systems/arm5e/templates/roll/roll-spell.html";
-    }
+  if (dataset.roll == "combat" || dataset.roll == "option" || dataset.roll == "general") {
+    return "systems/arm5e/templates/roll/roll-options.html";
+  }
+  if (dataset.roll == "char" || dataset.roll == "ability") {
+    return "systems/arm5e/templates/roll/roll-characteristic.html";
+  }
+  if (dataset.roll == "spont") {
+    //spontaneous magic
+    return "systems/arm5e/templates/roll/roll-magic.html";
+  }
+  if (dataset.roll == "magic" || dataset.roll == "spell") {
+    return "systems/arm5e/templates/roll/roll-spell.html";
+  }
 
     return '';
 }
@@ -236,9 +227,25 @@ function updateCharacteristicDependingOnRoll(dataset, actorData) {
     }
 }
 
+function getDebugButtons(actor, callback) {
+    const isDebugging = game.modules.get("_dev-mode")?.api?.getPackageDebugValue(ARM5E.MODULE_ID);
+    if (isDebugging) {
+        return {
+            explode: {
+                label: "DEV Roll 1",
+                callback: (html) => stressDie(html, actor, 1, callback)
+            },
+            zero: {
+                label: "DEV Roll 0",
+                callback: (html) => stressDie(html, actor, 2, callback)
+            }
+        }
+    }
+}
+
 function getDialogData(dataset, html, actor) {
     const callback = CALL_BACK_AFTER_ROLL[dataset.roll.toUpperCase()]?.CALLBACK;
-    if(STRESS_DIE[dataset.roll.toUpperCase()]) {
+    if (STRESS_DIE[dataset.roll.toUpperCase()]) {
         return {
             title: game.i18n.localize(STRESS_DIE[dataset.roll.toUpperCase()].TITLE),
             content: html,
@@ -246,16 +253,18 @@ function getDialogData(dataset, html, actor) {
                 yes: {
                     icon: "<i class='fas fa-check'></i>",
                     label: game.i18n.localize("arm5e.dialog.button.stressdie"),
-                    callback: (html) => stressDie(html, actor, callback),
+                    callback: (html) => stressDie(html, actor)
                 },
                 no: {
                     icon: "<i class='fas fa-ban'></i>",
                     label: game.i18n.localize("arm5e.dialog.button.cancel"),
-                    callback: null,
+                    callback: null
                 },
-            },
-        }
+                ...getDebugButtons(actor, callback)
+            }
+        };
     }
+
     return {
         title: game.i18n.localize("arm5e.dialog.title.rolldie"),
         content: html,
@@ -263,14 +272,15 @@ function getDialogData(dataset, html, actor) {
             yes: {
                 icon: "<i class='fas fa-check'></i>",
                 label: game.i18n.localize("arm5e.dialog.button.simpledie"),
-                callback: (html) => simpleDie(html, actor, callback),
+                callback: (html) => simpleDie(html, actor, 0, callback)
             },
             no: {
                 icon: "<i class='fas fa-bomb'></i>",
                 label: game.i18n.localize("arm5e.dialog.button.stressdie"),
-                callback: (html) => stressDie(html, actor, callback),
+                callback: (html) => stressDie(html, actor, 0, callback)
             },
-        },
+            ...getDebugButtons(actor, callback)
+        }
     };
 }
 
@@ -300,18 +310,6 @@ async function renderRollTemplate(dataset, template, actor, actorData) {
     );
 
     dialog.render(true);
-}
-
-function checkTargetAndCalculateResistante(html, actorCaster, roll, message) {
-    const actorsTargeted = getActorsFromTargetedTokens(actorCaster);
-    if(!actorsTargeted)
-    {
-        return false;
-    }
-    actorsTargeted.forEach((actorTarget) => {
-        const successOfMagic = calculateSuccessOfMagic({ actorTarget, actorCaster, roll, spell: message } )
-        chatContestOfMagic({ actorCaster, actorTarget, ...successOfMagic });
-    })
 }
 
 export {

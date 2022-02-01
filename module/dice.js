@@ -1,6 +1,6 @@
 let mult = 1;
 
-async function simpleDie(html, actorData, callBack) {
+async function simpleDie(html, actorData, callback) {
   actorData = getFormData(html, actorData);
   actorData = getRollFormula(actorData);
 
@@ -15,30 +15,49 @@ async function simpleDie(html, actorData, callBack) {
   let tmp = await dieRoll.roll({
     async: true,
   });
-  const message = tmp.toMessage({
+  tmp.toMessage({
     speaker: ChatMessage.getSpeaker({
       actor: actorData,
     }),
     flavor: name + "Simple die: <br />" + actorData.data.data.roll.rollLabel,
   });
   if(callBack) {
-    callBack(html, actorData, tmp, message);
+    callBack(html, actor, roll, message);
   }
 }
 
-async function stressDie(html, actor, callBack) {
+async function stressDie(html, actor, flags = 0, callBack) {
   mult = 1;
   actor = getFormData(html, actor);
   actor = getRollFormula(actor);
 
   let name = '<h2 class="ars-chat-title">' + actor.data.data.roll.label + "</h2>";
-  let dieRoll = await explodingRoll(actor);
-  let flavorTxt = name + "Stress die: <br />";
-  if (mult > 1) {
-    flavorTxt = name + "<h3>EXPLODING Stress die: </h3><br/>";
+  let dieRoll = await explodingRoll(actor, flags);
+  let flavorTxt = name + game.i18n.localize("arm5e.dialog.button.stressdie") + ": <br />";
+  let lastRoll;
+  let confAllowed = actor.data.data.con.score;
+  let botchCheck = 0;
+  if (isNaN(dieRoll)) {
+    if (mult > 1) {
+      flavorTxt = name + "<h3>" + game.i18n.localize("arm5e.messages.die.exploding") + "</h3><br/>";
+    }
+    lastRoll = multiplyRoll(mult, dieRoll, actor.data.data.roll.rollFormula, actor.data.data.roll.divide);
+  } else {
+    if (dieRoll == 1) {
+      flavorTxt = name + "<h2>" + game.i18n.localize("arm5e.messages.die.botch") + "</h2><br/>";
+    } else {
+      flavorTxt = name + "<h2>" + game.i18n.format("arm5e.messages.die.botches", { num: dieRoll }) + "</h2><br/>";
+    }
+
+    botchCheck = 1;
+    if (dieRoll > 0) {
+      confAllowed = 0;
+    }
+    lastRoll = new Roll("0");
+    await lastRoll.evaluate({ async: true });
   }
-  const roll = await multiplyRoll(mult, dieRoll, actor.data.data.roll.rollFormula, actor.data.data.roll.divide)
-  const message = await roll.toMessage({
+
+  lastRoll.toMessage({
     flavor: flavorTxt + actor.data.data.roll.rollLabel,
     speaker: ChatMessage.getSpeaker({
       actor: actor,
