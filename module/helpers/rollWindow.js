@@ -1,5 +1,5 @@
 import { ARM5E } from "../metadata.js";
-import { findAllActiveEffectsByType } from "./effects.js";
+import {findAllActiveEffectsByAffectedKey, findAllActiveEffectsByType} from "./effects.js";
 import ACTIVE_EFFECTS_TYPES from "../constants/activeEffectsTypes.js";
 import { simpleDie, stressDie } from "../dice.js";
 import { getActorsFromTargetedTokens } from "./tokens.js";

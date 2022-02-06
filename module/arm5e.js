@@ -18,6 +18,8 @@ import { ArM5ePreloadHandlebarsTemplates } from "./templates.js";
 import * as Arm5eChatMessage from "./features/chat-message-hook.js";
 
 import { addActiveEffectAuraToActor, modifyAuraActiveEffectForAllTokensInScene } from './helpers/aura.js'
+// experiment
+//import * as Arm5eUI from "./features/ui-integration.js";
 
 import { migration } from "./migration.js";
 import { log } from "./tools.js";
@@ -420,3 +422,5 @@ function onDropOnCanvas(canvas, data) {
 }
 
 Hooks.on("renderChatMessage", (message, html, data) => Arm5eChatMessage.addChatListeners(message, html, data));
+
+//Hooks.on("getSceneControlButtons", (buttons) => Arm5eUI.dummyButton(buttons));
