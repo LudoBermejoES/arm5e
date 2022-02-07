@@ -1,5 +1,8 @@
 import { ARM5E } from "../metadata.js";
-import {findAllActiveEffectsByAffectedKey, findAllActiveEffectsByType} from "./effects.js";
+import {
+  findAllActiveEffectsByAffectedKey,
+  findAllActiveEffectsByType,
+} from "./effects.js";
 import ACTIVE_EFFECTS_TYPES from "../constants/activeEffectsTypes.js";
 import { simpleDie, stressDie } from "../dice.js";
 import { getActorsFromTargetedTokens } from "./tokens.js";
@@ -7,24 +10,24 @@ import { calculateSuccessOfMagic } from "./magic.js";
 import { chatContestOfMagic } from "./chat.js";
 
 const CALL_BACK_AFTER_ROLL = {
-    SPELL: {
-        CALLBACK: checkTargetAndCalculateResistante,
-    }
-}
+  SPELL: {
+    CALLBACK: checkTargetAndCalculateResistante,
+  },
+};
 
 const STRESS_DIE = {
   COMBAT: {
-    TITLE: "arm5e.dialog.title.rolldie"
+    TITLE: "arm5e.dialog.title.rolldie",
   },
   MAGIC: {
-    TITLE: "arm5e.dialog.title.rolldie"
+    TITLE: "arm5e.dialog.title.rolldie",
   },
   SPON: {
-    TITLE: "arm5e.dialog.title.rolldie"
+    TITLE: "arm5e.dialog.title.rolldie",
   },
   OPTION: {
-    TITLE: "arm5e.dialog.title.rolldie"
-  }
+    TITLE: "arm5e.dialog.title.rolldie",
+  },
 };
 
 function prepareRollVariables(dataset, actorData, activeEffects) {
@@ -65,6 +68,8 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
     actorData.data.roll.txtOption5 = "";
     actorData.data.roll.bonusActiveEffects = 0;
 
+    actorData.data.roll.msgId = dataset.msgId;
+
     // set data to roll
     if (dataset.roll) {
       actorData.data.roll.type = dataset.roll;
@@ -74,18 +79,24 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
     }
 
     if (dataset.defaultcharacteristicforability) {
-      actorData.data.roll.characteristic = dataset.defaultcharacteristicforability;
+      actorData.data.roll.characteristic =
+        dataset.defaultcharacteristicforability;
     }
     if (dataset.ability) {
       actorData.data.roll.ability = dataset.ability;
     }
 
-    if (dataset.roll == "spell" || dataset.roll == "magic" || dataset.roll == "spont") {
+    if (
+      dataset.roll == "spell" ||
+      dataset.roll == "magic" ||
+      dataset.roll == "spont"
+    ) {
       if (dataset.id) {
         actorData.data.roll.effectId = dataset.id;
         // TODO: perf: get it from spells array?
         actorData.data.roll.spell = actorData.items.get(dataset.id);
-        actorData.data.roll.label += " (" + actorData.data.roll.spell.data.data.level + ")";
+        actorData.data.roll.label +=
+          " (" + actorData.data.roll.spell.data.data.level + ")";
         let techData = actorData.data.roll.spell._getTechniqueData(actorData);
         actorData.data.roll.techniqueText = techData[0];
         actorData.data.roll.techniqueScore = techData[1];
@@ -98,11 +109,16 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
         actorData.data.roll.ritual = actorData.data.roll.spell.data.data.ritual;
       } else {
         if (dataset.technique) {
-          actorData.data.roll.techniqueText = ARM5E.magic.techniques[dataset.technique].label;
-          actorData.data.roll.techniqueScore = parseInt(actorData.data.arts.techniques[dataset.technique].derivedScore);
+          actorData.data.roll.techniqueText =
+            ARM5E.magic.techniques[dataset.technique].label;
+          actorData.data.roll.techniqueScore = parseInt(
+            actorData.data.arts.techniques[dataset.technique].derivedScore
+          );
         }
         if (dataset.mform) {
-          actorData.data.roll.formScore = parseInt(actorData.data.arts.forms[dataset.mform].derivedScore);
+          actorData.data.roll.formScore = parseInt(
+            actorData.data.arts.forms[dataset.mform].derivedScore
+          );
           actorData.data.roll.formText = ARM5E.magic.forms[dataset.mform].label;
         }
       }
@@ -117,20 +133,28 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
       // }
 
       if (dataset.bonusActiveEffects) {
-        actorData.data.roll.bonusActiveEffects = Number(dataset.bonusActiveEffects);
-        const activeEffectsByType = findAllActiveEffectsByAffectedKey(activeEffects, ACTIVE_EFFECTS_TYPES.SPELLCASTING.key);
-        actorData.data.roll.activeEffects = activeEffectsByType.map((activeEffect) => {
-          const label = activeEffect.data.label;
-          let value = 0;
-          activeEffect
-              .data.changes
-              .filter(change => change.key === ACTIVE_EFFECTS_TYPES.SPELLCASTING.key)
+        actorData.data.roll.bonusActiveEffects = Number(
+          dataset.bonusActiveEffects
+        );
+        const activeEffectsByType = findAllActiveEffectsByAffectedKey(
+          activeEffects,
+          ACTIVE_EFFECTS_TYPES.SPELLCASTING.key
+        );
+        actorData.data.roll.activeEffects = activeEffectsByType.map(
+          (activeEffect) => {
+            const label = activeEffect.data.label;
+            let value = 0;
+            activeEffect.data.changes
+              .filter(
+                (change) => change.key === ACTIVE_EFFECTS_TYPES.SPELLCASTING.key
+              )
               .forEach((item) => (value += Number(item.value)));
-          return {
-            label,
-            value
-          };
-        });
+            return {
+              label,
+              value,
+            };
+          }
+        );
       }
 
       if (dataset.technique) {
@@ -160,13 +184,16 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
 
 function prepareRollFields(dataset, actorData) {
   if (dataset.bonus) {
-    actorData.data.roll.bonus = parseInt(actorData.data.roll.bonus) + parseInt(dataset.bonus);
+    actorData.data.roll.bonus =
+      parseInt(actorData.data.roll.bonus) + parseInt(dataset.bonus);
   }
   if (dataset.bonus2) {
-    actorData.data.roll.bonus = parseInt(actorData.data.roll.bonus) + parseInt(dataset.bonus2);
+    actorData.data.roll.bonus =
+      parseInt(actorData.data.roll.bonus) + parseInt(dataset.bonus2);
   }
   if (dataset.bonus3) {
-    actorData.data.roll.bonus = parseInt(actorData.data.roll.bonus) + parseInt(dataset.bonus3);
+    actorData.data.roll.bonus =
+      parseInt(actorData.data.roll.bonus) + parseInt(dataset.bonus3);
   }
   if (dataset.option1) {
     actorData.data.roll.option1 = dataset.option1;
@@ -211,7 +238,11 @@ function cleanBooleans(dataset, actorData) {
 }
 
 function chooseTemplate(dataset) {
-  if (dataset.roll == "combat" || dataset.roll == "option" || dataset.roll == "general") {
+  if (
+    dataset.roll == "combat" ||
+    dataset.roll == "option" ||
+    dataset.roll == "general"
+  ) {
     return "systems/arm5e/templates/roll/roll-options.html";
   }
   if (dataset.roll == "char" || dataset.roll == "ability") {
@@ -238,17 +269,20 @@ function updateCharacteristicDependingOnRoll(dataset, actorData) {
 }
 
 function getDebugButtonsIfNeeded(actor, callback) {
-  if(!game.modules.get("_dev-mode")?.api?.getPackageDebugValue(ARM5E.MODULE_ID)) return {}
+  if (
+    !game.modules.get("_dev-mode")?.api?.getPackageDebugValue(ARM5E.MODULE_ID)
+  )
+    return {};
   return {
     explode: {
       label: "DEV Roll 1",
-      callback: (html) => stressDie(html, actor, 1, callback)
+      callback: (html) => stressDie(html, actor, 1, callback),
     },
     zero: {
       label: "DEV Roll 0",
-      callback: (html) => stressDie(html, actor, 2, callback)
-    }
-  }
+      callback: (html) => stressDie(html, actor, 2, callback),
+    },
+  };
 }
 
 function getDialogData(dataset, html, actor) {
@@ -261,15 +295,15 @@ function getDialogData(dataset, html, actor) {
         yes: {
           icon: "<i class='fas fa-check'></i>",
           label: game.i18n.localize("arm5e.dialog.button.stressdie"),
-          callback: (html) => stressDie(html, actor, 0, callback)
+          callback: (html) => stressDie(html, actor, 0, callback),
         },
         no: {
           icon: "<i class='fas fa-ban'></i>",
           label: game.i18n.localize("arm5e.dialog.button.cancel"),
-          callback: null
+          callback: null,
         },
-        ...getDebugButtonsIfNeeded(actor, callback)
-      }
+        ...getDebugButtonsIfNeeded(actor, callback),
+      },
     };
   } else {
     return {
@@ -279,15 +313,15 @@ function getDialogData(dataset, html, actor) {
         yes: {
           icon: "<i class='fas fa-check'></i>",
           label: game.i18n.localize("arm5e.dialog.button.simpledie"),
-          callback: (html) => simpleDie(html, actor, callback)
+          callback: (html) => simpleDie(html, actor, callback),
         },
         no: {
           icon: "<i class='fas fa-bomb'></i>",
           label: game.i18n.localize("arm5e.dialog.button.stressdie"),
-          callback: (html) => stressDie(html, actor, 0, callback)
+          callback: (html) => stressDie(html, actor, 0, callback),
         },
-        ...getDebugButtonsIfNeeded(actor, callback)
-      }
+        ...getDebugButtonsIfNeeded(actor, callback),
+      },
     };
   }
 }
@@ -307,29 +341,33 @@ async function renderRollTemplate(dataset, template, actor, actorData) {
   const renderedTemplate = await renderTemplate(template, actorData);
   const dialogData = getDialogData(dataset, renderedTemplate, actor);
   const dialog = new Dialog(
-      {
-        ...dialogData,
-        render: addListenersDialog
-      },
-      {
-        classes: ["arm5e-dialog", "dialog"],
-        height: "auto"
-      }
+    {
+      ...dialogData,
+      render: addListenersDialog,
+    },
+    {
+      classes: ["arm5e-dialog", "dialog"],
+      height: "auto",
+    }
   );
 
   dialog.render(true);
 }
 
 function checkTargetAndCalculateResistante(html, actorCaster, roll, message) {
-    const actorsTargeted = getActorsFromTargetedTokens(actorCaster);
-    if(!actorsTargeted)
-    {
-        return false;
-    }
-    actorsTargeted.forEach((actorTarget) => {
-        const successOfMagic = calculateSuccessOfMagic({ actorTarget, actorCaster, roll, spell: message } )
-        chatContestOfMagic({ actorCaster, actorTarget, ...successOfMagic });
-    })
+  const actorsTargeted = getActorsFromTargetedTokens(actorCaster);
+  if (!actorsTargeted) {
+    return false;
+  }
+  actorsTargeted.forEach((actorTarget) => {
+    const successOfMagic = calculateSuccessOfMagic({
+      actorTarget,
+      actorCaster,
+      roll,
+      spell: message,
+    });
+    chatContestOfMagic({ actorCaster, actorTarget, ...successOfMagic });
+  });
 }
 
 export {
@@ -338,5 +376,5 @@ export {
   cleanBooleans,
   renderRollTemplate,
   prepareRollFields,
-  prepareRollVariables
+  prepareRollVariables,
 };

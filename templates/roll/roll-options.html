@@ -5,6 +5,10 @@
             <label class="resource-label">{{ data.roll.txtOption1 }} ({{ data.roll.option1 }})</label>
         </div>
 
+        {{#if data.roll.msgId }}
+            <input type="hidden" data="msg-id" value="{{data.roll.msgId}}" />
+        {{/if}}
+
         {{#unless (eq data.roll.txtOption2 "")}}
             <div class="flexrow flex-group-center">
                 <label class="resource-label">+</label>

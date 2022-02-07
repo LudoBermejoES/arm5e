@@ -3,7 +3,7 @@ const TYPE_OF_ROLL = {
   SPELL: "spell",
   MAGIC: "magicalEffect",
   SPONT: "spont",
-  WEAPON: "weapon"
+  WEAPON: "weapon",
 };
 
 function getDatasetForAbility(item) {
@@ -13,7 +13,7 @@ function getDatasetForAbility(item) {
     roll: TYPE_OF_ROLL.ABILITY,
     ability: item.data._id,
     defaultcharacteristicforability: item.data.data.defaultChaAb,
-    name: name
+    name: name,
   };
 }
 
@@ -25,12 +25,13 @@ function getDatasetForWeapon(item) {
   }
   return {
     roll: "combat",
+    name: game.i18n.localize("arm5e.sheet.attack"),
     option1: item.actor.data.data.characteristics.dex.value,
     txtoption1: game.i18n.localize("arm5e.sheet.dexterity"),
     option2: item.actor.data.data.combat.ability,
     txtoption2: game.i18n.localize("arm5e.sheet.ability"),
     option3: item.actor.data.data.combat.atk,
-    txtoption3: game.i18n.localize("arm5e.sheet.attack")
+    txtoption3: game.i18n.localize("arm5e.sheet.attack"),
   };
 }
 
@@ -45,7 +46,7 @@ function getDatasetForSpell(item, noCheck) {
     bonus: item.data.data.bonus,
     bonus2: item.data.data.mastery,
     bonusActiveEffects: item.actor.data.data.bonuses.arts.spellCasting,
-    name: item.data.name
+    name: item.data.name,
   };
 }
 
@@ -53,7 +54,7 @@ function getDatasetForMagic(item) {
   if (item?.data?.type !== TYPE_OF_ROLL.MAGIC) return {};
   return {
     ...getDatasetForSpell(item, true),
-    divide: 2
+    divide: 2,
   };
 }
 
@@ -62,7 +63,7 @@ function prepareDatasetByTypeOfItem(item) {
     ...getDatasetForAbility(item),
     ...getDatasetForWeapon(item),
     ...getDatasetForSpell(item),
-    ...getDatasetForMagic(item)
+    ...getDatasetForMagic(item),
   };
 }
 

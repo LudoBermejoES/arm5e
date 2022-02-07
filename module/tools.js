@@ -4,7 +4,9 @@ import { DEFAULT_WOUND, SIZES_AND_WOUNDS } from "./constants/wounds.js";
 
 export function log(force, ...args) {
   try {
-    const isDebugging = game.modules.get("_dev-mode")?.api?.getPackageDebugValue(ARM5E.MODULE_ID);
+    const isDebugging = game.modules
+      .get("_dev-mode")
+      ?.api?.getPackageDebugValue(ARM5E.MODULE_ID);
 
     if (force || isDebugging) {
       console.log(ARM5E.MODULE_ID, "|", ...args);
@@ -16,7 +18,9 @@ export function log(force, ...args) {
 
 export function error(force, ...args) {
   try {
-    const isDebugging = game.modules.get("_dev-mode")?.api?.getPackageDebugValue(ARM5E.MODULE_ID);
+    const isDebugging = game.modules
+      .get("_dev-mode")
+      ?.api?.getPackageDebugValue(ARM5E.MODULE_ID);
 
     if (force || isDebugging) {
       console.error(ARM5E.MODULE_ID, "|", ...args);
@@ -135,16 +139,6 @@ export function getLabUpkeepCost(upkeep) {
   }
 }
 
-export function getLastMessageByHeader(game, key) {
-  const searchString = game.i18n.localize(key).toLowerCase() + "</h2>";
-  const messages = game.messages.filter((msg) => {
-    const flavor = (msg?.data?.flavor || "").toLowerCase();
-    return flavor.indexOf(searchString) > -1;
-  });
-  if (messages.length) return messages.pop();
-  return false;
-}
-
 export function calculateWound(damage, size) {
   if (damage <= 0) {
     return "";
@@ -180,7 +174,7 @@ function getWoundType(size) {
       2: "medium",
       3: "heavy",
       4: "incap",
-      5: "dead"
+      5: "dead",
     };
   }
   let increment = size + 5;

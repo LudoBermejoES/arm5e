@@ -540,6 +540,7 @@
   "arm5e.notification.notPossibleToCalculateWound": "We cannot calculate the wound (check the size of your actor)",
   "arm5e.notification.noConfidencePointsLeft": "{name} has no confidence point left",
   "arm5e.notification.roll.botchNum": "Please enter the number of botch dice.",
+  "arm5e.notification.onlyOneToken": "You need to select one single token",
 
   "arm5e.packs.abilities.name": "Abilities",
 

@@ -7,7 +7,9 @@
         sign=true }})</label
       >
     </div>
-
+    {{#if data.roll.msgId }}
+    <input type="hidden" data="msg-id" value="{{data.roll.msgId}}" />
+    {{/if}}
     <div class="flexrow flex-group-center">
       <label class="resource-label">+</label>
     </div>
