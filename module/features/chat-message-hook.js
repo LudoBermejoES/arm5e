@@ -37,6 +37,15 @@ function getDatasetForSoak(actor) {
 }
 
 function getConfidenceButton(data, actorId) {
+  if (
+    !(
+      game.users.get(game.userId).isGM ||
+      game.users.get(game.userId).data.character == actorId
+    )
+  ) {
+    return;
+  }
+
   // confidence has been used already => no button
   if (
     !data?.message?.flags?.arm5e ||
@@ -172,15 +181,6 @@ export function addChatListeners(message, html, data) {
   if (!message.isRoll && !isDamage) return;
 
   let actorId = data.message.speaker.actor;
-
-  if (
-    !(
-      game.users.get(game.userId).isGM ||
-      game.users.get(game.userId).data.character == actorId
-    )
-  ) {
-    return;
-  }
 
   // old chat messages, ignore them
   if (!isDamage && data.message.flags.arm5e === undefined) {
