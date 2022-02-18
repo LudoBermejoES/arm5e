@@ -8,15 +8,9 @@ import { resetOwnerFields } from "../item/item-converter.js";
 import { ARM5E } from "../metadata.js";
 import { log, calculateWound, getDataset } from "../tools.js";
 import { getActorFromToken } from "../helpers/tokens.js";
-import {
-  onManageActiveEffect,
-  prepareActiveEffectCategories,
-} from "../helpers/effects.js";
+import { onManageActiveEffect, prepareActiveEffectCategories } from "../helpers/effects.js";
 
-import {
-  findVoiceAndGesturesActiveEffects,
-  modifyVoiceOrGesturesActiveEvent,
-} from "../helpers/voiceAndGestures.js";
+import { findVoiceAndGesturesActiveEffects, modifyVoiceOrGesturesActiveEvent } from "../helpers/voiceAndGestures.js";
 
 import {
   prepareRollVariables,
@@ -24,18 +18,15 @@ import {
   cleanBooleans,
   updateCharacteristicDependingOnRoll,
   renderRollTemplate,
-  chooseTemplate,
+  chooseTemplate
 } from "../helpers/rollWindow.js";
-import {
-  getAttackAndDefenseMessagesFromChats,
-  getDamageMessageFromChats,
-} from "../helpers/chatMessages.js";
+import { getAttackAndDefenseMessagesFromChats, getDamageMessageFromChats } from "../helpers/chatMessages.js";
 
 export class ArM5eActorSheet extends ActorSheet {
   // /** @override */
   static get defaultOptions() {
     return mergeObject(super.defaultOptions, {
-      dragDrop: [{ dragSelector: ".macro-ready" }],
+      dragDrop: [{ dragSelector: ".macro-ready" }]
       /*         classes: ["arm5e", "sheet", "actor"],
          template: "systems/arm5e/templates/actor/actor-pc-sheet.html",
          width: 1100,
@@ -141,22 +132,17 @@ export class ArM5eActorSheet extends ActorSheet {
 
     if (actorData.type == "player" || actorData.type == "npc") {
       context.data.world = {};
-      if (
-        context.data.charType.value == "magusNPC" ||
-        context.data.charType.value == "magus"
-      ) {
+      if (context.data.charType.value == "magusNPC" || context.data.charType.value == "magus") {
         // Arts icons style
         context.artsIcons = game.settings.get("arm5e", "artsIcons");
         context.data.world.labs = game.actors
           .filter((a) => a.type == "laboratory")
           .map(({ name, id }) => ({
             name,
-            id,
+            id
           }));
         if (context.data.sanctum) {
-          let lab = context.data.world.labs.filter(
-            (c) => c.name == context.data.sanctum.value
-          );
+          let lab = context.data.world.labs.filter((c) => c.name == context.data.sanctum.value);
           if (lab.length > 0) {
             context.data.sanctum.linked = true;
             context.data.sanctum.actorId = lab[0].id;
@@ -170,12 +156,10 @@ export class ArM5eActorSheet extends ActorSheet {
         .filter((a) => a.type == "covenant")
         .map(({ name, id }) => ({
           name,
-          id,
+          id
         }));
       if (context.data.covenant) {
-        let cov = context.data.world.covenants.filter(
-          (c) => c.name == context.data.covenant.value
-        );
+        let cov = context.data.world.covenants.filter((c) => c.name == context.data.covenant.value);
         if (cov.length > 0) {
           context.data.covenant.linked = true;
           context.data.covenant.actorId = cov[0].id;
@@ -184,18 +168,14 @@ export class ArM5eActorSheet extends ActorSheet {
         }
       }
     }
-    context.devMode = game.modules
-      .get("_dev-mode")
-      ?.api?.getPackageDebugValue(ARM5E.MODULE_ID);
+    context.devMode = game.modules.get("_dev-mode")?.api?.getPackageDebugValue(ARM5E.MODULE_ID);
     // Add roll data for TinyMCE editors.
     context.rollData = context.actor.getRollData();
 
     // Prepare active effects
     context.effects = prepareActiveEffectCategories(this.actor.effects);
     if (context.data?.arts?.voiceAndGestures) {
-      context.data.arts.voiceAndGestures = findVoiceAndGesturesActiveEffects(
-        this.actor.effects
-      );
+      context.data.arts.voiceAndGestures = findVoiceAndGesturesActiveEffects(this.actor.effects);
     }
     this._prepareCharacterItems(context);
 
@@ -272,9 +252,9 @@ export class ArM5eActorSheet extends ActorSheet {
         {
           _id: itemId,
           data: {
-            [field]: value,
-          },
-        },
+            [field]: value
+          }
+        }
       ]);
     });
 
@@ -288,9 +268,7 @@ export class ArM5eActorSheet extends ActorSheet {
     });
 
     // Generate abilities automatically
-    html
-      .find(".abilities-generate")
-      .click(this._onGenerateAbilities.bind(this));
+    html.find(".abilities-generate").click(this._onGenerateAbilities.bind(this));
 
     html.find(".rest").click((ev) => {
       if (this.actor.data.type === "player" || this.actor.data.type === "npc") {
@@ -303,11 +281,11 @@ export class ArM5eActorSheet extends ActorSheet {
       let val = this.actor.getFlag("arm5e", "sorting", listName);
       if (val === undefined) {
         this.actor.setFlag("arm5e", "sorting", {
-          [listName]: true,
+          [listName]: true
         });
       } else {
         this.actor.setFlag("arm5e", "sorting", {
-          [listName]: !val[listName],
+          [listName]: !val[listName]
         });
       }
     });
@@ -318,9 +296,7 @@ export class ArM5eActorSheet extends ActorSheet {
     html.find(".pick-covenant").click(this._onPickCovenant.bind(this));
     html.find(".soak-damage").click(this._onSoakDamage.bind(this));
     html.find(".damage").click(this._onCalculateDamage.bind(this));
-    html
-      .find(".voice-and-gestures")
-      .change(this._onSelectVoiceAndGestures.bind(this));
+    html.find(".voice-and-gestures").change(this._onSelectVoiceAndGestures.bind(this));
 
     // Drag events for macros.
     if (this.actor.isOwner) {
@@ -333,9 +309,7 @@ export class ArM5eActorSheet extends ActorSheet {
     }
 
     // Active Effect management
-    html
-      .find(".effect-control")
-      .click((ev) => onManageActiveEffect(ev, this.actor));
+    html.find(".effect-control").click((ev) => onManageActiveEffect(ev, this.actor));
   }
 
   async _increaseArt(type, art) {
@@ -356,8 +330,7 @@ export class ArM5eActorSheet extends ActorSheet {
       let oldXp = this.actor.data.data.arts[type][art].xp;
       let updateData = {};
       updateData[`data.arts.${type}.${art}.xp`] =
-        ((this.actor.data.data.arts[type][art].derivedScore - 1) *
-          this.actor.data.data.arts[type][art].derivedScore) /
+        ((this.actor.data.data.arts[type][art].derivedScore - 1) * this.actor.data.data.arts[type][art].derivedScore) /
         2;
 
       await this.actor.update(updateData, {});
@@ -392,8 +365,8 @@ export class ArM5eActorSheet extends ActorSheet {
       {
         name: name,
         type: type,
-        data: foundry.utils.deepClone(header.dataset),
-      },
+        data: foundry.utils.deepClone(header.dataset)
+      }
     ];
     // Remove the type from the dataset since it's in the itemData.type prop.
     delete itemData[0].data["type"];
@@ -402,11 +375,7 @@ export class ArM5eActorSheet extends ActorSheet {
     // console.log("Add item");
     // console.log(itemData);
 
-    let newItem = await this.actor.createEmbeddedDocuments(
-      "Item",
-      itemData,
-      {}
-    );
+    let newItem = await this.actor.createEmbeddedDocuments("Item", itemData, {});
 
     newItem[0].sheet.render(true);
     return newItem;
@@ -428,19 +397,19 @@ export class ArM5eActorSheet extends ActorSheet {
             yes: {
               icon: "<i class='fas fa-check'></i>",
               label: `Yes`,
-              callback: (html) => setCovenant(html, actor),
+              callback: (html) => setCovenant(html, actor)
             },
             no: {
               icon: "<i class='fas fa-ban'></i>",
               label: `Cancel`,
-              callback: null,
-            },
-          },
+              callback: null
+            }
+          }
         },
         {
           jQuery: true,
           height: "140px",
-          classes: ["arm5e-dialog", "dialog"],
+          classes: ["arm5e-dialog", "dialog"]
         }
       ).render(true);
     });
@@ -451,7 +420,7 @@ export class ArM5eActorSheet extends ActorSheet {
     const damage = parseInt($(messageDamage?.data?.content).text()) || 0;
     const extraData = {
       damage,
-      modifier: 0,
+      modifier: 0
     };
 
     const element = event.currentTarget;
@@ -460,7 +429,7 @@ export class ArM5eActorSheet extends ActorSheet {
 
     const data = {
       actor,
-      extraData,
+      extraData
     };
     let template = "systems/arm5e/templates/actor/parts/actor-soak.html";
     renderTemplate(template, data).then(function (html) {
@@ -472,19 +441,19 @@ export class ArM5eActorSheet extends ActorSheet {
             yes: {
               icon: "<i class='fas fa-check'></i>",
               label: `Yes`,
-              callback: (html) => setWounds(html, actor),
+              callback: (html) => setWounds(html, actor)
             },
             no: {
               icon: "<i class='fas fa-ban'></i>",
               label: `Cancel`,
-              callback: null,
-            },
-          },
+              callback: null
+            }
+          }
         },
         {
           jQuery: true,
           height: "140px",
-          classes: ["arm5e-dialog", "dialog"],
+          classes: ["arm5e-dialog", "dialog"]
         }
       ).render(true);
     });
@@ -498,15 +467,14 @@ export class ArM5eActorSheet extends ActorSheet {
 
   async _onCalculateDamage(html, actor) {
     event.preventDefault();
-    const { messageAttack, messageDefense } =
-      getAttackAndDefenseMessagesFromChats(game, html.msgId);
+    const { messageAttack, messageDefense } = getAttackAndDefenseMessagesFromChats(game, html.msgId);
     const attack = parseInt(messageAttack?.data?.content || "0");
     const defense = parseInt(messageDefense?.data?.content || "0");
     const advantage = attack - defense;
 
     const extraData = {
       advantage,
-      modifier: 0,
+      modifier: 0
     };
 
     const element = event.currentTarget;
@@ -515,10 +483,9 @@ export class ArM5eActorSheet extends ActorSheet {
 
     const data = {
       actor,
-      extraData,
+      extraData
     };
-    let template =
-      "systems/arm5e/templates/actor/parts/actor-calculateDamage.html";
+    let template = "systems/arm5e/templates/actor/parts/actor-calculateDamage.html";
     renderTemplate(template, data).then(function (html) {
       new Dialog(
         {
@@ -528,19 +495,19 @@ export class ArM5eActorSheet extends ActorSheet {
             yes: {
               icon: "<i class='fas fa-check'></i>",
               label: `Yes`,
-              callback: (html) => calculateDamage(html, actor),
+              callback: (html) => calculateDamage(html, actor)
             },
             no: {
               icon: "<i class='fas fa-ban'></i>",
               label: `Cancel`,
-              callback: null,
-            },
-          },
+              callback: null
+            }
+          }
         },
         {
           jQuery: true,
           height: "140px",
-          classes: ["arm5e-dialog", "dialog"],
+          classes: ["arm5e-dialog", "dialog"]
         }
       ).render(true);
     });
@@ -555,29 +522,21 @@ export class ArM5eActorSheet extends ActorSheet {
       for (let [key, a] of Object.entries(CONFIG.ARM5E.character.abilities)) {
         let localizedA = game.i18n.localize(a);
         // check if the ability already exists in the Actor
-        let abs = abilities.filter(
-          (ab) => ab.name == localizedA || ab.name === localizedA + "*"
-        );
+        let abs = abilities.filter((ab) => ab.name == localizedA || ab.name === localizedA + "*");
 
         if (abs.length == 0) {
           log(false, `Did not find ${game.i18n.localize(a)}, creating it...`);
           const itemData = {
             name: localizedA,
-            type: "ability",
+            type: "ability"
           };
           // First, check if the Ability is found in the world
           abs = game.items.filter(
-            (i) =>
-              i.type === "ability" &&
-              (i.name === localizedA || i.name === localizedA + "*")
+            (i) => i.type === "ability" && (i.name === localizedA || i.name === localizedA + "*")
           );
           if (abs.length == 0) {
             // Then, check if the Abilities compendium exists
-            let abPack = game.packs.filter(
-              (p) =>
-                p.metadata.package === "arm5e" &&
-                p.metadata.name === "abilities"
-            );
+            let abPack = game.packs.filter((p) => p.metadata.package === "arm5e" && p.metadata.name === "abilities");
             const documents = await abPack[0].getDocuments();
             for (let doc of documents) {
               if (doc.name === localizedA || doc.name === localizedA + "*") {
@@ -592,8 +551,7 @@ export class ArM5eActorSheet extends ActorSheet {
           newAbilities.push(itemData);
         } else {
           // found the ability, assign its Id
-          updateData[`data.laboratory.abilitiesSelected.${key}.abilityID`] =
-            abs[0].id;
+          updateData[`data.laboratory.abilitiesSelected.${key}.abilityID`] = abs[0].id;
         }
       }
       this.actor.update(updateData, {});
@@ -611,18 +569,15 @@ export class ArM5eActorSheet extends ActorSheet {
 
     if (this.actor.data.data.wounds.dead.number > 0) {
       ui.notifications.info(game.i18n.localize("arm5e.notification.dead"), {
-        permanent: true,
+        permanent: true
       });
       return;
     }
     if (dataset.roll != "char") {
       if (this.actor.data.data.fatigue.unconscious.level.value == true) {
-        ui.notifications.info(
-          game.i18n.localize("arm5e.notification.unconscious"),
-          {
-            permanent: true,
-          }
-        );
+        ui.notifications.info(game.i18n.localize("arm5e.notification.unconscious"), {
+          permanent: true
+        });
         return;
       }
     }
@@ -706,56 +661,35 @@ export async function setCovenant(selector, actor) {
 export async function setWounds(selector, actor) {
   const damageToApply = parseInt(selector.find('input[name$="damage"]').val());
   const modifier = parseInt(selector.find('input[name$="modifier"]').val());
-  const prot = parseInt(
-    selector.find('label[name$="prot"]').attr("value") || 0
-  );
-  const stamina = parseInt(
-    selector.find('label[name$="stamina"]').attr("value") || 0
-  );
+  const prot = parseInt(selector.find('label[name$="prot"]').attr("value") || 0);
+  const stamina = parseInt(selector.find('label[name$="stamina"]').attr("value") || 0);
   const damage = damageToApply - modifier - prot - stamina;
   const size = actor?.data?.data?.vitals?.siz?.value || 0;
   const typeOfWound = calculateWound(damage, size);
   if (typeOfWound === false) {
-    ui.notifications.info(
-      game.i18n.localize("arm5e.notification.notPossibleToCalculateWound"),
-      {
-        permanent: true,
-      }
-    );
+    ui.notifications.info(game.i18n.localize("arm5e.notification.notPossibleToCalculateWound"), {
+      permanent: true
+    });
     return false;
   }
 
-  const title =
-    '<h2 class="ars-chat-title">' +
-    game.i18n.localize("arm5e.sheet.soak") +
-    "</h2>";
-  const messageDamage = `${game.i18n.localize(
-    "arm5e.sheet.damage"
-  )} (${damage})`;
-  const messageStamina = `${game.i18n.localize(
-    "arm5e.sheet.stamina"
-  )} (${stamina})`;
+  const title = '<h2 class="ars-chat-title">' + game.i18n.localize("arm5e.sheet.soak") + "</h2>";
+  const messageDamage = `${game.i18n.localize("arm5e.sheet.damage")} (${damage})`;
+  const messageStamina = `${game.i18n.localize("arm5e.sheet.stamina")} (${stamina})`;
   const messageProt = `${game.i18n.localize("arm5e.sheet.soak")} (${prot})`;
-  const messageModifier = `${game.i18n.localize(
-    "arm5e.sheet.modifier"
-  )} (${modifier})`;
+  const messageModifier = `${game.i18n.localize("arm5e.sheet.modifier")} (${modifier})`;
   const messageWound = typeOfWound
     ? game.i18n
         .localize("arm5e.messages.woundResult")
-        .replace(
-          "$typeWound$",
-          game.i18n.localize(
-            "arm5e.messages.wound." + typeOfWound.toLowerCase()
-          )
-        )
+        .replace("$typeWound$", game.i18n.localize("arm5e.messages.wound." + typeOfWound.toLowerCase()))
     : game.i18n.localize("arm5e.messages.noWound");
 
   ChatMessage.create({
     content: `<h4 class="dice-total">${messageWound}</h4>`,
     flavor: `${title} ${messageDamage}<br/> ${messageStamina}<br/> ${messageProt}<br/> ${messageModifier}<br/>`,
     speaker: ChatMessage.getSpeaker({
-      actor,
-    }),
+      actor
+    })
   });
 
   if (typeOfWound) {
@@ -764,11 +698,11 @@ export async function setWounds(selector, actor) {
         wounds: {
           [typeOfWound]: {
             number: {
-              value: actor.data.data.wounds[typeOfWound].number.value + 1,
-            },
-          },
-        },
-      },
+              value: actor.data.data.wounds[typeOfWound].number.value + 1
+            }
+          }
+        }
+      }
     };
 
     await actor.update(actorUpdate);
@@ -776,37 +710,22 @@ export async function setWounds(selector, actor) {
 }
 
 export async function calculateDamage(selector, actor) {
-  const strenght = parseInt(
-    selector.find('label[name$="strenght"]').attr("value") || 0
-  );
-  const weapon = parseInt(
-    selector.find('label[name$="weapon"]').attr("value") || 0
-  );
+  const strenght = parseInt(selector.find('label[name$="strenght"]').attr("value") || 0);
+  const weapon = parseInt(selector.find('label[name$="weapon"]').attr("value") || 0);
   const advantage = parseInt(selector.find('input[name$="advantage"]').val());
   const modifier = parseInt(selector.find('input[name$="modifier"]').val());
   const damage = strenght + weapon + advantage + modifier;
-  const title =
-    '<h2 class="ars-chat-title">' +
-    game.i18n.localize("arm5e.sheet.damage") +
-    "</h2>";
-  const messageStrenght = `${game.i18n.localize(
-    "arm5e.sheet.strength"
-  )} (${strenght})`;
-  const messageWeapon = `${game.i18n.localize(
-    "arm5e.sheet.damage"
-  )} (${weapon})`;
-  const messageAdvantage = `${game.i18n.localize(
-    "arm5e.sheet.advantage"
-  )} (${advantage})`;
-  const messageModifier = `${game.i18n.localize(
-    "arm5e.sheet.modifier"
-  )} (${modifier})`;
+  const title = '<h2 class="ars-chat-title">' + game.i18n.localize("arm5e.sheet.damage") + "</h2>";
+  const messageStrenght = `${game.i18n.localize("arm5e.sheet.strength")} (${strenght})`;
+  const messageWeapon = `${game.i18n.localize("arm5e.sheet.damage")} (${weapon})`;
+  const messageAdvantage = `${game.i18n.localize("arm5e.sheet.advantage")} (${advantage})`;
+  const messageModifier = `${game.i18n.localize("arm5e.sheet.modifier")} (${modifier})`;
   const messageDamage = `<h4 class="dice-total">${damage}</h4>`;
   ChatMessage.create({
     content: messageDamage,
     flavor: `${title} ${messageStrenght}<br/> ${messageWeapon}<br/> ${messageAdvantage}<br/> ${messageModifier}<br/>`,
     speaker: ChatMessage.getSpeaker({
-      actor,
-    }),
+      actor
+    })
   });
 }

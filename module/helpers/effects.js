@@ -4,26 +4,31 @@
  * @param {Actor|Item} owner      The owning entity which manages this effect
  */
 function onManageActiveEffect(event, owner) {
-    event.preventDefault();
-    const a = event.currentTarget;
-    const li = a.closest("li");
-    const effect = li.dataset.effectId ? owner.effects.get(li.dataset.effectId) : null;
-    switch ( a.dataset.action ) {
-        case "create":
-            return owner.createEmbeddedDocuments("ActiveEffect", [{
-                label: "New Effect",
-                icon: "icons/svg/aura.svg",
-                origin: owner.uuid,
-                "duration.rounds": li.dataset.effectType === "temporary" ? 1 : undefined,
-                disabled: li.dataset.effectType === "inactive"
-            }]);
-        case "edit":
-            return effect.sheet.render(true);
-        case "delete":
-            return effect.delete();
-        case "toggle":
-            return effect.update({disabled: !effect.data.disabled});
-    }
+  event.preventDefault();
+  const a = event.currentTarget;
+  const li = a.closest("li");
+  const effect = li.dataset.effectId
+    ? owner.effects.get(li.dataset.effectId)
+    : null;
+  switch (a.dataset.action) {
+    case "create":
+      return owner.createEmbeddedDocuments("ActiveEffect", [
+        {
+          label: "New Effect",
+          icon: "icons/svg/aura.svg",
+          origin: owner.uuid,
+          "duration.rounds":
+            li.dataset.effectType === "temporary" ? 1 : undefined,
+          disabled: li.dataset.effectType === "inactive",
+        },
+      ]);
+    case "edit":
+      return effect.sheet.render(true);
+    case "delete":
+      return effect.delete();
+    case "toggle":
+      return effect.update({ disabled: !effect.data.disabled });
+  }
 }
 
 /**
@@ -32,77 +37,84 @@ function onManageActiveEffect(event, owner) {
  * @return {object}                   Data for rendering
  */
 function prepareActiveEffectCategories(effects) {
+  // Define effect header categories
+  const categories = {
+    temporary: {
+      type: "temporary",
+      label: "Temporary Effects",
+      effects: [],
+    },
+    passive: {
+      type: "passive",
+      label: "Passive Effects",
+      effects: [],
+    },
+    inactive: {
+      type: "inactive",
+      label: "Inactive Effects",
+      effects: [],
+    },
+  };
 
-    // Define effect header categories
-    const categories = {
-        temporary: {
-            type: "temporary",
-            label: "Temporary Effects",
-            effects: []
-        },
-        passive: {
-            type: "passive",
-            label: "Passive Effects",
-            effects: []
-        },
-        inactive: {
-            type: "inactive",
-            label: "Inactive Effects",
-            effects: []
-        }
-    };
-
-    // Iterate over active effects, classifying them into categories
-    for ( let e of effects ) {
-        e._getSourceName(); // Trigger a lookup for the source name
-        if ( e.data.disabled ) categories.inactive.effects.push(e);
-        else if ( e.isTemporary ) categories.temporary.effects.push(e);
-        else categories.passive.effects.push(e);
-    }
-    return categories;
+  // Iterate over active effects, classifying them into categories
+  for (let e of effects) {
+    e._getSourceName(); // Trigger a lookup for the source name
+    if (e.data.disabled) categories.inactive.effects.push(e);
+    else if (e.isTemporary) categories.temporary.effects.push(e);
+    else categories.passive.effects.push(e);
+  }
+  return categories;
 }
 
 function findAllActiveEffectsByType(effects, type) {
-    const activeEffects = [];
-    for ( let e of effects ) {
-        e._getSourceName(); // Trigger a lookup for the source name
-        if (!e.data.disabled && e.data.flags.type.toUpperCase() === type.toUpperCase()) {
-            activeEffects.push(e);
-        }
+  const activeEffects = [];
+  for (let e of effects) {
+    e._getSourceName(); // Trigger a lookup for the source name
+    if (
+      !e.data.disabled &&
+      e.data.flags.type.toUpperCase() === type.toUpperCase()
+    ) {
+      activeEffects.push(e);
     }
-    return activeEffects;
+  }
+  return activeEffects;
 }
 
 function findAllActiveEffectsByAffectedKey(effects, key) {
-    const activeEffects = [];
-    for ( let e of effects ) {
-        e._getSourceName(); // Trigger a lookup for the source name
-        if (!e.data.disabled && e.data.changes.find(change => change.key === key)) {
-            activeEffects.push(e);
-        }
+  const activeEffects = [];
+  for (let e of effects) {
+    e._getSourceName(); // Trigger a lookup for the source name
+    if (
+      !e.data.disabled &&
+      e.data.changes.find((change) => change.key === key)
+    ) {
+      activeEffects.push(e);
     }
-    return activeEffects;
+  }
+  return activeEffects;
 }
 
-
 function findFirstActiveEffectByType(effects, type) {
-    for ( let e of effects ) {
-        e._getSourceName(); // Trigger a lookup for the source name
-        if (!e.data.disabled && e.data.flags.type.toUpperCase() === type.toUpperCase()) {
-            return e;
-        }
+  for (let e of effects) {
+    e._getSourceName(); // Trigger a lookup for the source name
+    if (
+      !e.data.disabled &&
+      e.data.flags.type.toUpperCase() === type.toUpperCase()
+    ) {
+      return e;
     }
-    return false;
+  }
+  return false;
 }
 
 function findFirstActiveEffectBySubtype(effects, subtype) {
-    for ( let e of effects ) {
-        e._getSourceName(); // Trigger a lookup for the source name
-        if (!e.data.disabled && e.data.flags.subType === subtype.toUpperCase()) {
-            return e;
-        }
+  for (let e of effects) {
+    e._getSourceName(); // Trigger a lookup for the source name
+    if (!e.data.disabled && e.data.flags.subType === subtype.toUpperCase()) {
+      return e;
     }
-    return false;
+  }
+  return false;
 }
 
 export {
@@ -112,4 +124,4 @@ export {
   findFirstActiveEffectByType,
   findFirstActiveEffectBySubtype,
   findAllActiveEffectsByAffectedKey,
-}
+};
