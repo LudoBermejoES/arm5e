@@ -3,7 +3,7 @@ const TYPE_OF_ROLL = {
   SPELL: "spell",
   MAGIC: "magicalEffect",
   SPONT: "spont",
-  WEAPON: "weapon",
+  WEAPON: "weapon"
 };
 
 function getDatasetForAbility(item) {
@@ -45,8 +45,8 @@ function getDatasetForSpell(item, noCheck) {
     mform: item.data.data.form.value,
     bonus: item.data.data.bonus,
     bonus2: item.data.data.mastery,
-    bonusActiveEffects: item.actor.data.data.bonuses.arts.spellCasting,
-    name: item.data.name,
+    bonusActiveEffects: item.actor.data.data.bonuses.arts.spellcasting,
+    name: item.data.name
   };
 }
 

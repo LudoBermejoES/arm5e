@@ -20,7 +20,7 @@ export class ArM5eItem extends Item {
 
         const temp = {
           id: "",
-          name: "N/A",
+          name: "N/A"
         };
         abilitiesSelect["a0"] = temp;
 
@@ -29,7 +29,7 @@ export class ArM5eItem extends Item {
           if (i.type === "ability") {
             const temp = {
               id: i.id,
-              name: i.name,
+              name: i.name
             };
             //abilitiesSelect.push(temp);
             abilitiesSelect["a" + key] = temp;
@@ -49,10 +49,7 @@ export class ArM5eItem extends Item {
         let newBaseLevel = this.data.data.level;
         let shouldBeRitual = false;
         if (data.range.value) {
-          newBaseLevel = this._addSpellMagnitude(
-            newBaseLevel,
-            -CONFIG.ARM5E.magic.ranges[data.range.value].impact
-          );
+          newBaseLevel = this._addSpellMagnitude(newBaseLevel, -CONFIG.ARM5E.magic.ranges[data.range.value].impact);
         }
         if (data.duration.value) {
           newBaseLevel = this._addSpellMagnitude(
@@ -61,28 +58,16 @@ export class ArM5eItem extends Item {
           );
         }
         if (data.target.value) {
-          newBaseLevel = this._addSpellMagnitude(
-            newBaseLevel,
-            -CONFIG.ARM5E.magic.targets[data.target.value].impact
-          );
+          newBaseLevel = this._addSpellMagnitude(newBaseLevel, -CONFIG.ARM5E.magic.targets[data.target.value].impact);
         }
         if (data.complexity) {
-          newBaseLevel = this._addSpellMagnitude(
-            newBaseLevel,
-            -data.complexity
-          );
+          newBaseLevel = this._addSpellMagnitude(newBaseLevel, -data.complexity);
         }
         if (data.enhancingRequisite) {
-          newBaseLevel = this._addSpellMagnitude(
-            newBaseLevel,
-            -data.enhancingRequisite
-          );
+          newBaseLevel = this._addSpellMagnitude(newBaseLevel, -data.enhancingRequisite);
         }
         if (data.targetSize) {
-          newBaseLevel = this._addSpellMagnitude(
-            newBaseLevel,
-            -data.targetSize
-          );
+          newBaseLevel = this._addSpellMagnitude(newBaseLevel, -data.targetSize);
         }
         if (newBaseLevel < 1) {
           // ui.notifications.warn(`Spell named \"${this.name}\" is not strictly following magic theory, its level will be recomputed using a base effect of level 1`, {
@@ -98,7 +83,7 @@ export class ArM5eItem extends Item {
         if (this.data._id != undefined) {
           this.update(
             {
-              "data.baseLevel": newBaseLevel,
+              "data.baseLevel": newBaseLevel
             },
             {}
           );
@@ -108,22 +93,13 @@ export class ArM5eItem extends Item {
         let effectLevel = this.data.data.baseLevel;
 
         if (data.range.value) {
-          effectLevel = this._addSpellMagnitude(
-            effectLevel,
-            CONFIG.ARM5E.magic.ranges[data.range.value].impact
-          );
+          effectLevel = this._addSpellMagnitude(effectLevel, CONFIG.ARM5E.magic.ranges[data.range.value].impact);
         }
         if (data.duration.value) {
-          effectLevel = this._addSpellMagnitude(
-            effectLevel,
-            CONFIG.ARM5E.magic.durations[data.duration.value].impact
-          );
+          effectLevel = this._addSpellMagnitude(effectLevel, CONFIG.ARM5E.magic.durations[data.duration.value].impact);
         }
         if (data.target.value) {
-          effectLevel = this._addSpellMagnitude(
-            effectLevel,
-            CONFIG.ARM5E.magic.targets[data.target.value].impact
-          );
+          effectLevel = this._addSpellMagnitude(effectLevel, CONFIG.ARM5E.magic.targets[data.target.value].impact);
         }
         if (data.complexity) {
           effectLevel = this._addSpellMagnitude(effectLevel, data.complexity);
@@ -132,17 +108,10 @@ export class ArM5eItem extends Item {
           effectLevel = this._addSpellMagnitude(effectLevel, data.targetSize);
         }
         if (data.enhancingRequisite) {
-          effectLevel = this._addSpellMagnitude(
-            effectLevel,
-            data.enhancingRequisite
-          );
+          effectLevel = this._addSpellMagnitude(effectLevel, data.enhancingRequisite);
         }
 
-        if (
-          this.type == "enchantment" ||
-          (this.type == "laboratoryText" &&
-            this.data.data.type == "enchantment")
-        ) {
+        if (this.type == "enchantment" || (this.type == "laboratoryText" && this.data.data.type == "enchantment")) {
           effectLevel += parseInt(data.effectfrequency);
           if (data.penetration % 2 == 1) {
             this.data.data.penetration += 1;
@@ -185,10 +154,7 @@ export class ArM5eItem extends Item {
 
       // compute casting total
       if (actorData && this.actor != null) {
-        itemData.data.castingTotal = this._computeCastingTotal(
-          actorData,
-          itemData
-        );
+        itemData.data.castingTotal = this._computeCastingTotal(actorData, itemData);
       } else {
         itemData.data.castingTotal = 0;
       }
@@ -197,34 +163,21 @@ export class ArM5eItem extends Item {
       let pts = getLabUpkeepCost(data.upkeep);
       this.data.data.points = pts * CONFIG.ARM5E.lab.usage[data.usage].coeff;
     } else if (this.type == "magicItem") {
-      this.data.data.maxLevel =
-        10 * this.data.data.materialBase * this.data.data.sizeMultiplier;
+      this.data.data.maxLevel = 10 * this.data.data.materialBase * this.data.data.sizeMultiplier;
     }
     // log(false,"prepare-item");
     // log(false,itemData);
   }
 
   _needLevelComputation() {
-    let enforceSpellLevel =
-      this.type == "spell" &&
-      game.settings.get("arm5e", "magicRulesEnforcement");
+    let enforceSpellLevel = this.type == "spell" && game.settings.get("arm5e", "magicRulesEnforcement");
     let enforceEnchantmentLevel =
-      this.type == "laboratoryText" &&
-      (this.data.data.type == "spell" || this.data.data.type == "enchantment");
-    return (
-      this.type == "magicalEffect" ||
-      this.type == "enchantment" ||
-      enforceSpellLevel ||
-      enforceEnchantmentLevel
-    );
+      this.type == "laboratoryText" && (this.data.data.type == "spell" || this.data.data.type == "enchantment");
+    return this.type == "magicalEffect" || this.type == "enchantment" || enforceSpellLevel || enforceEnchantmentLevel;
   }
 
   _isMagicalEffect() {
-    return (
-      this.type == "magicalEffect" ||
-      this.type == "enchantment" ||
-      this.type == "spell"
-    );
+    return this.type == "magicalEffect" || this.type == "enchantment" || this.type == "spell";
   }
 
   // to tell whether a spell needs to be migrated
@@ -234,22 +187,17 @@ export class ArM5eItem extends Item {
       this.data.data.duration.value === undefined ||
       this.data.data.target.value === undefined
     ) {
-      console.warn(
-        `The spell ${this.name} has not been migrated, please trigger a manual migration!`
-      );
+      console.warn(`The spell ${this.name} has not been migrated, please trigger a manual migration!`);
       return true;
     }
     if (
       CONFIG.ARM5E.magic.ranges[this.data.data.range.value] === undefined ||
-      CONFIG.ARM5E.magic.durations[this.data.data.duration.value] ===
-        undefined ||
+      CONFIG.ARM5E.magic.durations[this.data.data.duration.value] === undefined ||
       CONFIG.ARM5E.magic.targets[this.data.data.target.value] === undefined
     ) {
       // if those values are not defined, this spell hasn't been migrated, no need to attempt to compute anything
 
-      console.warn(
-        `The spell ${this.name} has not been migrated, please trigger a manual migration!`
-      );
+      console.warn(`The spell ${this.name} has not been migrated, please trigger a manual migration!`);
       return true;
     }
     return false;
@@ -268,29 +216,21 @@ export class ArM5eItem extends Item {
       " ) - " +
       game.i18n.localize("arm5e.spell.range.short") +
       ": " +
-      game.i18n.localize(
-        CONFIG.ARM5E.magic.ranges[this.data.data.range.value].label
-      ) +
+      game.i18n.localize(CONFIG.ARM5E.magic.ranges[this.data.data.range.value].label) +
       " " +
       game.i18n.localize("arm5e.spell.duration.short") +
       ": " +
-      game.i18n.localize(
-        CONFIG.ARM5E.magic.durations[this.data.data.duration.value].label
-      ) +
+      game.i18n.localize(CONFIG.ARM5E.magic.durations[this.data.data.duration.value].label) +
       " " +
       game.i18n.localize("arm5e.spell.target.short") +
       ": " +
-      game.i18n.localize(
-        CONFIG.ARM5E.magic.targets[this.data.data.target.value].label
-      );
+      game.i18n.localize(CONFIG.ARM5E.magic.targets[this.data.data.target.value].label);
     return label;
   }
 
   _getTechLabel() {
     let label = CONFIG.ARM5E.magic.arts[this.data.data.technique.value].short;
-    let techReq = Object.entries(this.data.data["technique-req"]).filter(
-      (r) => r[1] === true
-    );
+    let techReq = Object.entries(this.data.data["technique-req"]).filter((r) => r[1] === true);
     if (techReq.length > 0) {
       label += " (";
       techReq.forEach((key) => {
@@ -305,9 +245,7 @@ export class ArM5eItem extends Item {
 
   _getFormLabel() {
     let label = CONFIG.ARM5E.magic.arts[this.data.data.form.value].short;
-    let formReq = Object.entries(this.data.data["form-req"]).filter(
-      (r) => r[1] === true
-    );
+    let formReq = Object.entries(this.data.data["form-req"]).filter((r) => r[1] === true);
     if (formReq.length > 0) {
       label += " (";
       formReq.forEach((key) => {
@@ -324,33 +262,21 @@ export class ArM5eItem extends Item {
   _getTechniqueData(actorData) {
     if (!this._isMagicalEffect()) return ["", 0];
 
-    let label =
-      CONFIG.ARM5E.magic.techniques[this.data.data.technique.value].label;
+    let label = CONFIG.ARM5E.magic.techniques[this.data.data.technique.value].label;
     let tech = 1000;
-    let techReq = Object.entries(this.data.data["technique-req"]).filter(
-      (r) => r[1] === true
-    );
+    let techReq = Object.entries(this.data.data["technique-req"]).filter((r) => r[1] === true);
     if (techReq.length > 0) {
       label += " (";
       techReq.forEach((key) => {
-        tech = Math.min(
-          tech,
-          actorData.data.arts.techniques[key[0]].derivedScore
-        );
+        tech = Math.min(tech, actorData.data.arts.techniques[key[0]].finalScore);
         label += CONFIG.ARM5E.magic.arts[key[0]].short + " ";
       });
       // remove last whitespace
       label = label.substring(0, label.length - 1);
       label += ")";
-      tech = Math.min(
-        actorData.data.arts.techniques[this.data.data.technique.value]
-          .derivedScore,
-        tech
-      );
+      tech = Math.min(actorData.data.arts.techniques[this.data.data.technique.value].finalScore, tech);
     } else {
-      tech =
-        actorData.data.arts.techniques[this.data.data.technique.value]
-          .derivedScore;
+      tech = actorData.data.arts.techniques[this.data.data.technique.value].finalScore;
     }
 
     return [label, tech];
@@ -360,24 +286,19 @@ export class ArM5eItem extends Item {
 
     let label = CONFIG.ARM5E.magic.forms[this.data.data.form.value].label;
     let form = 1000;
-    let formReq = Object.entries(this.data.data["form-req"]).filter(
-      (r) => r[1] === true
-    );
+    let formReq = Object.entries(this.data.data["form-req"]).filter((r) => r[1] === true);
     if (formReq.length > 0) {
       label += " (";
       formReq.forEach((key) => {
-        form = Math.min(form, actorData.data.arts.forms[key[0]].derivedScore);
+        form = Math.min(form, actorData.data.arts.forms[key[0]].finalScore);
         label += CONFIG.ARM5E.magic.arts[key[0]].short + " ";
       });
       // remove last comma
       label = label.substring(0, label.length - 1);
       label += ")";
-      form = Math.min(
-        actorData.data.arts.forms[this.data.data.form.value].derivedScore,
-        form
-      );
+      form = Math.min(actorData.data.arts.forms[this.data.data.form.value].finalScore, form);
     } else {
-      form = actorData.data.arts.forms[this.data.data.form.value].derivedScore;
+      form = actorData.data.arts.forms[this.data.data.form.value].finalScore;
     }
 
     return [label, form];
@@ -434,41 +355,25 @@ export class ArM5eItem extends Item {
     let form = 1000;
     let focusBonus = 0;
 
-    let techReq = Object.entries(itemData.data["technique-req"]).filter(
-      (r) => r[1] === true
-    );
-    let formReq = Object.entries(itemData.data["form-req"]).filter(
-      (r) => r[1] === true
-    );
+    let techReq = Object.entries(itemData.data["technique-req"]).filter((r) => r[1] === true);
+    let formReq = Object.entries(itemData.data["form-req"]).filter((r) => r[1] === true);
 
     if (techReq.length > 0) {
       techReq.forEach((key) => {
-        tech = Math.min(
-          tech,
-          actorData.data.arts.techniques[key[0]].derivedScore
-        );
+        tech = Math.min(tech, actorData.data.arts.techniques[key[0]].finalScore);
       });
 
-      tech = Math.min(
-        actorData.data.arts.techniques[itemData.data.technique.value]
-          .derivedScore,
-        tech
-      );
+      tech = Math.min(actorData.data.arts.techniques[itemData.data.technique.value].finalScore, tech);
     } else {
-      tech =
-        actorData.data.arts.techniques[itemData.data.technique.value]
-          .derivedScore;
+      tech = actorData.data.arts.techniques[itemData.data.technique.value].finalScore;
     }
     if (formReq.length > 0) {
       formReq.forEach((key) => {
-        form = Math.min(tech, actorData.data.arts.forms[key[0]].derivedScore);
+        form = Math.min(tech, actorData.data.arts.forms[key[0]].finalScore);
       });
-      form = Math.min(
-        actorData.data.arts.forms[itemData.data.form.value].derivedScore,
-        form
-      );
+      form = Math.min(actorData.data.arts.forms[itemData.data.form.value].finalScore, form);
     } else {
-      form = actorData.data.arts.forms[itemData.data.form.value].derivedScore;
+      form = actorData.data.arts.forms[itemData.data.form.value].finalScore;
     }
     if (itemData.data.applyFocus) {
       res += tech + form + Math.min(tech, form);
@@ -486,7 +391,7 @@ export class ArM5eItem extends Item {
         const img = CONFIG.ARM5E_DEFAULT_ICONS[data.type];
         if (img)
           await this.data.update({
-            img,
+            img
           });
       }
     }
@@ -508,9 +413,9 @@ export class ArM5eItem extends Item {
     let label = `Rolling ${item.name}`;
     roll.roll().toMessage({
       speaker: ChatMessage.getSpeaker({
-        actor: this.actor,
+        actor: this.actor
       }),
-      flavor: label,
+      flavor: label
     });
   }
 }

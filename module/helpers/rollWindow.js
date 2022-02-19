@@ -1,8 +1,5 @@
 import { ARM5E } from "../metadata.js";
-import {
-  findAllActiveEffectsByAffectedKey,
-  findAllActiveEffectsByType,
-} from "./effects.js";
+import { findAllActiveEffectsByAffectedKey, findAllActiveEffectsWithType } from "./active-effects.js";
 import ACTIVE_EFFECTS_TYPES from "../constants/activeEffectsTypes.js";
 import { simpleDie, stressDie } from "../dice.js";
 import { getActorsFromTargetedTokens } from "./tokens.js";
@@ -11,8 +8,8 @@ import { chatContestOfMagic } from "./chat.js";
 
 const CALL_BACK_AFTER_ROLL = {
   SPELL: {
-    CALLBACK: checkTargetAndCalculateResistante,
-  },
+    CALLBACK: checkTargetAndCalculateResistante
+  }
 };
 
 const STRESS_DIE = {
@@ -109,16 +106,11 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
         actorData.data.roll.ritual = actorData.data.roll.spell.data.data.ritual;
       } else {
         if (dataset.technique) {
-          actorData.data.roll.techniqueText =
-            ARM5E.magic.techniques[dataset.technique].label;
-          actorData.data.roll.techniqueScore = parseInt(
-            actorData.data.arts.techniques[dataset.technique].derivedScore
-          );
+          actorData.data.roll.techniqueText = ARM5E.magic.techniques[dataset.technique].label;
+          actorData.data.roll.techniqueScore = parseInt(actorData.data.arts.techniques[dataset.technique].finalScore);
         }
         if (dataset.mform) {
-          actorData.data.roll.formScore = parseInt(
-            actorData.data.arts.forms[dataset.mform].derivedScore
-          );
+          actorData.data.roll.formScore = parseInt(actorData.data.arts.forms[dataset.mform].finalScore);
           actorData.data.roll.formText = ARM5E.magic.forms[dataset.mform].label;
         }
       }
@@ -133,28 +125,24 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
       // }
 
       if (dataset.bonusActiveEffects) {
-        actorData.data.roll.bonusActiveEffects = Number(
-          dataset.bonusActiveEffects
-        );
+        actorData.data.roll.bonusActiveEffects = Number(dataset.bonusActiveEffects);
         const activeEffectsByType = findAllActiveEffectsByAffectedKey(
           activeEffects,
-          ACTIVE_EFFECTS_TYPES.SPELLCASTING.key
+          ACTIVE_EFFECTS_TYPES.spellcasting.key
         );
-        actorData.data.roll.activeEffects = activeEffectsByType.map(
-          (activeEffect) => {
-            const label = activeEffect.data.label;
-            let value = 0;
-            activeEffect.data.changes
-              .filter(
-                (change) => change.key === ACTIVE_EFFECTS_TYPES.SPELLCASTING.key
-              )
-              .forEach((item) => (value += Number(item.value)));
-            return {
-              label,
-              value,
-            };
-          }
-        );
+        actorData.data.roll.activeEffects = activeEffectsByType.map((activeEffect) => {
+          const label = activeEffect.data.label;
+          let value = 0;
+
+          const valuableChanges = activeEffect.data.changes.filter((c) => {
+            return c.mode === CONST.ACTIVE_EFFECT_MODES.ADD && c.key === ACTIVE_EFFECTS_TYPES.spellcasting.key;
+          });
+          valuableChanges.forEach((item) => (value += Number(item.value)));
+          return {
+            label,
+            value
+          };
+        });
       }
 
       if (dataset.technique) {
@@ -269,10 +257,7 @@ function updateCharacteristicDependingOnRoll(dataset, actorData) {
 }
 
 function getDebugButtonsIfNeeded(actor, callback) {
-  if (
-    !game.modules.get("_dev-mode")?.api?.getPackageDebugValue(ARM5E.MODULE_ID)
-  )
-    return {};
+  if (!game.modules.get("_dev-mode")?.api?.getPackageDebugValue(ARM5E.MODULE_ID)) return {};
   return {
     explode: {
       label: "DEV Roll 1",
@@ -280,8 +265,8 @@ function getDebugButtonsIfNeeded(actor, callback) {
     },
     zero: {
       label: "DEV Roll 0",
-      callback: (html) => stressDie(html, actor, 2, callback),
-    },
+      callback: (html) => stressDie(html, actor, 2, callback)
+    }
   };
 }
 
@@ -343,11 +328,11 @@ async function renderRollTemplate(dataset, template, actor, actorData) {
   const dialog = new Dialog(
     {
       ...dialogData,
-      render: addListenersDialog,
+      render: addListenersDialog
     },
     {
       classes: ["arm5e-dialog", "dialog"],
-      height: "auto",
+      height: "auto"
     }
   );
 
@@ -360,12 +345,7 @@ function checkTargetAndCalculateResistante(html, actorCaster, roll, message) {
     return false;
   }
   actorsTargeted.forEach((actorTarget) => {
-    const successOfMagic = calculateSuccessOfMagic({
-      actorTarget,
-      actorCaster,
-      roll,
-      spell: message,
-    });
+    const successOfMagic = calculateSuccessOfMagic({ actorTarget, actorCaster, roll, spell: message });
     chatContestOfMagic({ actorCaster, actorTarget, ...successOfMagic });
   });
 }

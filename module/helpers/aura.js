@@ -1,41 +1,40 @@
 import ACTIVE_EFFECTS_TYPES from "../constants/activeEffectsTypes.js";
-import { findAllActiveEffectsByType } from "./effects.js";
+import { findAllActiveEffectsWithType } from "./active-effects.js";
 
 function getAuraActiveEffect(value) {
-  const changeData = ACTIVE_EFFECTS_TYPES.AURA.keys.map((key) => ({
+  const changeData = ACTIVE_EFFECTS_TYPES.aura.keys.map((key) => ({
     key,
     value: Number(value),
     mode: CONST.ACTIVE_EFFECT_MODES.ADD,
-    priority: 20,
+    priority: 20
   }));
   const label = `${game.i18n.localize("arm5e.sheet.levelAura")}`;
   // create a new Active Effect
   const activeEffectData = {
     label: label,
-    icon: ACTIVE_EFFECTS_TYPES.AURA.icon,
+    icon: ACTIVE_EFFECTS_TYPES.aura.icon,
     duration: {
-      rounds: undefined,
+      rounds: undefined
     },
     flags: {
-      type: ACTIVE_EFFECTS_TYPES.AURA.type,
+      arm5e: {
+        type: ACTIVE_EFFECTS_TYPES.aura.type.toUpperCase()
+      }
     },
-    changes: changeData,
+    changes: changeData
   };
   return activeEffectData;
 }
 
 async function addEffect(actor, activeEffectData) {
-  const ae = findAllActiveEffectsByType(
-    actor.data.effects,
-    ACTIVE_EFFECTS_TYPES.AURA.type
-  );
+  const ae = findAllActiveEffectsWithType(actor.data.effects, ACTIVE_EFFECTS_TYPES.aura.type);
   for (let i = 0; i <= ae.length - 1; i++) {
     await ae[i].delete();
   }
 
   const effect = {
     ...activeEffectData,
-    origin: actor.uuid,
+    origin: actor.uuid
   };
   await ActiveEffect.create(effect, { parent: actor });
 }
@@ -54,7 +53,4 @@ async function addActiveEffectAuraToActor(actor, value) {
   addEffect(actor, auraEffect);
 }
 
-export {
-  modifyAuraActiveEffectForAllTokensInScene,
-  addActiveEffectAuraToActor,
-};
+export { modifyAuraActiveEffectForAllTokensInScene, addActiveEffectAuraToActor };

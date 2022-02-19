@@ -7,7 +7,7 @@ import {
   compareMagicalEffectsData,
   compareLabTextsData,
   log,
-  error,
+  error
 } from "../tools.js";
 
 /**
@@ -24,7 +24,40 @@ export class ArM5ePCActor extends Actor {
   }
 
   /** @override */
-  prepareBaseData() {}
+  prepareBaseData() {
+    super.prepareBaseData();
+
+    // add properties used for active effects:
+
+    if (this.data.type != "player" && this.data.type != "npc") {
+      return;
+    }
+    this.data.data.bonuses = {};
+    if (this._isMagus()) {
+      for (let key of Object.keys(this.data.data.arts.techniques)) {
+        this.data.data.arts.techniques[key].bonus = 0;
+      }
+
+      for (let key of Object.keys(this.data.data.arts.forms)) {
+        this.data.data.arts.forms[key].bonus = 0;
+      }
+
+      this.data.data.bonuses.arts = {
+        spellcasting: 0,
+        laboratory: 0,
+        penetration: 0
+      };
+    }
+
+    // Not needed, done at Item level?
+    // this.items.forEach((item) => {
+    //   if (item.type == "ability") {
+    //     item.data.data.bonus = 0;
+    //   }
+    // });
+
+    this.data.data.bonuses.traits = { soak: 0 };
+  }
 
   /** @override */
   prepareDerivedData() {
@@ -63,7 +96,7 @@ export class ArM5ePCActor extends Actor {
     let abilitiesFamiliar = [];
     let powersFamiliar = [];
 
-    let soak = actorData.data.characteristics.sta.value;
+    let soak = actorData.data.characteristics.sta.value + actorData.data.bonuses.traits.soak;
 
     let powers = [];
 
@@ -83,7 +116,7 @@ export class ArM5ePCActor extends Actor {
       dfn: 0,
       dam: 0,
       prot: 0,
-      ability: 0,
+      ability: 0
     };
 
     const data = actorData.data;
@@ -100,8 +133,7 @@ export class ArM5ePCActor extends Actor {
     if (data.wounds) {
       data.woundsTotal = 0;
       for (let [key, item] of Object.entries(data.wounds)) {
-        data.woundsTotal =
-          data.woundsTotal + item.number.value * item.penalty.value;
+        data.woundsTotal = data.woundsTotal + item.number.value * item.penalty.value;
       }
     }
 
@@ -109,7 +141,7 @@ export class ArM5ePCActor extends Actor {
     const temp = {
       _id: "",
       name: "N/A",
-      value: 0,
+      value: 0
     };
     abilitiesSelect["a0"] = temp;
     for (const [key, item] of actorData.items.entries()) {
@@ -123,80 +155,44 @@ export class ArM5ePCActor extends Actor {
         //     this._getAbilityScore(i.data.xp);
         // }
         i.data.xpNextLevel = (i.data.derivedScore + 1) * 5;
-        i.data.remainingXp =
-          i.data.xp - this._getAbilityXp(i.data.derivedScore);
+        i.data.remainingXp = i.data.xp - this._getAbilityXp(i.data.derivedScore);
 
         abilities.push(i);
 
         const temp = {
           id: i._id,
           name: i.name,
-          value: i.data.derivedScore,
+          value: i.data.derivedScore
         };
         //abilitiesSelect.push(temp);
         abilitiesSelect["a" + key] = temp;
 
         totalXPAbilities = parseInt(totalXPAbilities) + i.data.xp;
 
-        if (
-          this._isMagus() &&
-          actorData.data.laboratory &&
-          actorData.data.laboratory.abilitiesSelected
-        ) {
-          if (
-            i._id ==
-            actorData.data.laboratory.abilitiesSelected.finesse.abilityID
-          ) {
-            actorData.data.laboratory.abilitiesSelected.finesse.value =
-              i.data.derivedScore;
+        if (this._isMagus() && actorData.data.laboratory && actorData.data.laboratory.abilitiesSelected) {
+          if (i._id == actorData.data.laboratory.abilitiesSelected.finesse.abilityID) {
+            actorData.data.laboratory.abilitiesSelected.finesse.value = i.data.derivedScore;
           }
-          if (
-            i._id ==
-            actorData.data.laboratory.abilitiesSelected.awareness.abilityID
-          ) {
-            actorData.data.laboratory.abilitiesSelected.awareness.value =
-              i.data.derivedScore;
+          if (i._id == actorData.data.laboratory.abilitiesSelected.awareness.abilityID) {
+            actorData.data.laboratory.abilitiesSelected.awareness.value = i.data.derivedScore;
           }
-          if (
-            i._id ==
-            actorData.data.laboratory.abilitiesSelected.concentration.abilityID
-          ) {
-            actorData.data.laboratory.abilitiesSelected.concentration.value =
-              i.data.derivedScore;
+          if (i._id == actorData.data.laboratory.abilitiesSelected.concentration.abilityID) {
+            actorData.data.laboratory.abilitiesSelected.concentration.value = i.data.derivedScore;
           }
-          if (
-            i._id ==
-            actorData.data.laboratory.abilitiesSelected.artesLib.abilityID
-          ) {
-            actorData.data.laboratory.abilitiesSelected.artesLib.value =
-              i.data.derivedScore;
+          if (i._id == actorData.data.laboratory.abilitiesSelected.artesLib.abilityID) {
+            actorData.data.laboratory.abilitiesSelected.artesLib.value = i.data.derivedScore;
           }
-          if (
-            i._id ==
-            actorData.data.laboratory.abilitiesSelected.philosophy.abilityID
-          ) {
-            actorData.data.laboratory.abilitiesSelected.philosophy.value =
-              i.data.derivedScore;
+          if (i._id == actorData.data.laboratory.abilitiesSelected.philosophy.abilityID) {
+            actorData.data.laboratory.abilitiesSelected.philosophy.value = i.data.derivedScore;
           }
-          if (
-            i._id == actorData.data.laboratory.abilitiesSelected.parma.abilityID
-          ) {
-            actorData.data.laboratory.abilitiesSelected.parma.value =
-              i.data.derivedScore;
+          if (i._id == actorData.data.laboratory.abilitiesSelected.parma.abilityID) {
+            actorData.data.laboratory.abilitiesSelected.parma.value = i.data.derivedScore;
           }
-          if (
-            i._id ==
-            actorData.data.laboratory.abilitiesSelected.magicTheory.abilityID
-          ) {
-            actorData.data.laboratory.abilitiesSelected.magicTheory.value =
-              i.data.derivedScore;
+          if (i._id == actorData.data.laboratory.abilitiesSelected.magicTheory.abilityID) {
+            actorData.data.laboratory.abilitiesSelected.magicTheory.value = i.data.derivedScore;
           }
-          if (
-            i._id ==
-            actorData.data.laboratory.abilitiesSelected?.penetration?.abilityID
-          ) {
-            actorData.data.laboratory.abilitiesSelected.penetration.value =
-              i.data.derivedScore;
+          if (i._id == actorData.data.laboratory.abilitiesSelected?.penetration?.abilityID) {
+            actorData.data.laboratory.abilitiesSelected.penetration.value = i.data.derivedScore;
           }
         }
       }
@@ -259,16 +255,12 @@ export class ArM5ePCActor extends Actor {
       } else if (i.type === "virtue") {
         virtues.push(i);
         if (ARM5E.impacts[i.data.impact.value]) {
-          totalVirtues =
-            parseInt(totalVirtues) +
-            parseInt(ARM5E.impacts[i.data.impact.value].cost);
+          totalVirtues = parseInt(totalVirtues) + parseInt(ARM5E.impacts[i.data.impact.value].cost);
         }
       } else if (i.type === "flaw") {
         flaws.push(i);
         if (ARM5E.impacts[i.data.impact.value]) {
-          totalFlaws =
-            parseInt(totalFlaws) +
-            parseInt(ARM5E.impacts[i.data.impact.value].cost);
+          totalFlaws = parseInt(totalFlaws) + parseInt(ARM5E.impacts[i.data.impact.value].cost);
         }
       }
 
@@ -309,9 +301,7 @@ export class ArM5ePCActor extends Actor {
     }
     if (actorData.data.characteristics) {
       if (actorData.data.characteristics.str.value > 0) {
-        combat.overload =
-          parseInt(combat.overload) -
-          parseInt(actorData.data.characteristics.str.value);
+        combat.overload = parseInt(combat.overload) - parseInt(actorData.data.characteristics.str.value);
       }
       if (combat.overload < 0) {
         combat.overload = 0;
@@ -336,45 +326,34 @@ export class ArM5ePCActor extends Actor {
       }
       // calculate laboratory totals
       actorData.data.laboratory.fastCastingSpeed.value =
-        actorData.data.characteristics.qik.value +
-        actorData.data.laboratory.abilitiesSelected.finesse.value;
+        actorData.data.characteristics.qik.value + actorData.data.laboratory.abilitiesSelected.finesse.value;
       actorData.data.laboratory.determiningEffect.value =
-        actorData.data.characteristics.per.value +
-        actorData.data.laboratory.abilitiesSelected.awareness.value;
+        actorData.data.characteristics.per.value + actorData.data.laboratory.abilitiesSelected.awareness.value;
       actorData.data.laboratory.targeting.value =
-        actorData.data.characteristics.per.value +
-        actorData.data.laboratory.abilitiesSelected.finesse.value;
+        actorData.data.characteristics.per.value + actorData.data.laboratory.abilitiesSelected.finesse.value;
       actorData.data.laboratory.concentration.value =
-        actorData.data.characteristics.sta.value +
-        actorData.data.laboratory.abilitiesSelected.concentration.value;
-      actorData.data.laboratory.magicResistance.value =
-        actorData.data.laboratory.abilitiesSelected.parma.value * 5;
+        actorData.data.characteristics.sta.value + actorData.data.laboratory.abilitiesSelected.concentration.value;
+      actorData.data.laboratory.magicResistance.value = actorData.data.laboratory.abilitiesSelected.parma.value * 5;
       actorData.data.laboratory.multipleCasting.value =
-        actorData.data.characteristics.int.value +
-        actorData.data.laboratory.abilitiesSelected.finesse.value;
+        actorData.data.characteristics.int.value + actorData.data.laboratory.abilitiesSelected.finesse.value;
       actorData.data.laboratory.basicLabTotal.value =
-        actorData.data.characteristics.int.value +
-        actorData.data.laboratory.abilitiesSelected.magicTheory.value; // aura pending
-      actorData.data.laboratory.visLimit.value =
-        actorData.data.laboratory.abilitiesSelected.magicTheory.value * 2;
+        actorData.data.characteristics.int.value + actorData.data.laboratory.abilitiesSelected.magicTheory.value; // aura pending
+      actorData.data.laboratory.visLimit.value = actorData.data.laboratory.abilitiesSelected.magicTheory.value * 2;
       if (actorData.data.laboratory.totalPenetration) {
         actorData.data.laboratory.totalPenetration.value =
           actorData.data.laboratory.abilitiesSelected?.penetration?.value || 0;
       }
 
       //warping & decrepitude
-      actorData.data.warping.experienceNextLevel =
-        (parseInt(actorData.data.warping.score) + 1) * 5;
+      actorData.data.warping.experienceNextLevel = (parseInt(actorData.data.warping.score) + 1) * 5;
       if (this.data.type != "npc") {
-        actorData.data.decrepitude.experienceNextLevel =
-          (parseInt(actorData.data.decrepitude.score) + 1) * 5;
+        actorData.data.decrepitude.experienceNextLevel = (parseInt(actorData.data.decrepitude.score) + 1) * 5;
       }
 
       for (let [key, technique] of Object.entries(data.arts.techniques)) {
         technique.derivedScore = this._getArtScore(technique.xp);
-
-        technique.xpNextLevel =
-          this._getArtXp(technique.derivedScore + 1) - technique.xp;
+        technique.finalScore = technique.derivedScore + technique.bonus;
+        technique.xpNextLevel = this._getArtXp(technique.derivedScore + 1) - technique.xp;
         // TODO remove once confirmed there is no bug
         // if (technique.score != technique.derivedScore && technique.xp != 0) {
         //   error(
@@ -394,7 +373,7 @@ export class ArM5ePCActor extends Actor {
 
       for (let [key, form] of Object.entries(data.arts.forms)) {
         form.derivedScore = this._getArtScore(form.xp);
-
+        form.finalScore = form.derivedScore + form.bonus;
         form.xpNextLevel = this._getArtXp(form.derivedScore + 1) - form.xp;
         // TODO remove once confirmed there is no bug
         // if (form.score != form.derivedScore && form.xp != 0) {
@@ -409,14 +388,8 @@ export class ArM5ePCActor extends Actor {
         //   );
         //   this._getArtScore(form.xp);
         // }
-        if (
-          actorData.type == "player" &&
-          actorData.data.laboratory &&
-          actorData.data.laboratory.abilitiesSelected
-        ) {
-          form.magicResistance =
-            actorData.data.laboratory.abilitiesSelected.parma.value * 5 +
-            form.derivedScore;
+        if (actorData.type == "player" && actorData.data.laboratory && actorData.data.laboratory.abilitiesSelected) {
+          form.magicResistance = actorData.data.laboratory.abilitiesSelected.parma.value * 5 + form.finalScore;
         }
         totalXPArts = parseInt(totalXPArts) + form.xp;
       }
@@ -447,9 +420,7 @@ export class ArM5ePCActor extends Actor {
     if (actorData.data.magicalEffects) {
       let flag = this.getFlag("arm5e", "sorting", "magicalEffects");
       if (flag && flag["magicalEffects"] == true) {
-        actorData.data.magicalEffects = magicalEffects.sort(
-          compareMagicalEffectsData
-        );
+        actorData.data.magicalEffects = magicalEffects.sort(compareMagicalEffectsData);
       } else {
         actorData.data.magicalEffects = magicalEffects;
       }
@@ -526,56 +497,30 @@ export class ArM5ePCActor extends Actor {
       }
     }
     if (data.formFilter != "") {
-      baseEffects = baseEffects.filter(
-        (e) => e.data.data.form.value === data.formFilter
-      );
-      magicEffects = magicEffects.filter(
-        (e) => e.data.data.form.value === data.formFilter
-      );
+      baseEffects = baseEffects.filter((e) => e.data.data.form.value === data.formFilter);
+      magicEffects = magicEffects.filter((e) => e.data.data.form.value === data.formFilter);
       spells = spells.filter((e) => e.data.data.form.value === data.formFilter);
-      enchantments = enchantments.filter(
-        (e) => e.data.data.form.value === data.formFilter
-      );
+      enchantments = enchantments.filter((e) => e.data.data.form.value === data.formFilter);
     }
     if (data.techniqueFilter != "") {
-      baseEffects = baseEffects.filter(
-        (e) => e.data.data.technique.value === data.techniqueFilter
-      );
-      magicEffects = magicEffects.filter(
-        (e) => e.data.data.technique.value === data.techniqueFilter
-      );
-      spells = spells.filter(
-        (e) => e.data.data.technique.value === data.techniqueFilter
-      );
-      enchantments = enchantments.filter(
-        (e) => e.data.data.technique.value === data.techniqueFilter
-      );
+      baseEffects = baseEffects.filter((e) => e.data.data.technique.value === data.techniqueFilter);
+      magicEffects = magicEffects.filter((e) => e.data.data.technique.value === data.techniqueFilter);
+      spells = spells.filter((e) => e.data.data.technique.value === data.techniqueFilter);
+      enchantments = enchantments.filter((e) => e.data.data.technique.value === data.techniqueFilter);
     }
     if (data.levelFilter != 0 && data.levelFilter != null) {
       if (data.levelOperator == 0) {
-        magicEffects = magicEffects.filter(
-          (e) => e.data.data.level === data.levelFilter
-        );
+        magicEffects = magicEffects.filter((e) => e.data.data.level === data.levelFilter);
         spells = spells.filter((e) => e.data.data.level === data.levelFilter);
-        enchantments = enchantments.filter(
-          (e) => e.data.data.level === data.levelFilter
-        );
+        enchantments = enchantments.filter((e) => e.data.data.level === data.levelFilter);
       } else if (data.levelOperator == -1) {
-        magicEffects = magicEffects.filter(
-          (e) => e.data.data.level <= data.levelFilter
-        );
+        magicEffects = magicEffects.filter((e) => e.data.data.level <= data.levelFilter);
         spells = spells.filter((e) => e.data.data.level <= data.levelFilter);
-        enchantments = enchantments.filter(
-          (e) => e.data.data.level <= data.levelFilter
-        );
+        enchantments = enchantments.filter((e) => e.data.data.level <= data.levelFilter);
       } else {
-        magicEffects = magicEffects.filter(
-          (e) => e.data.data.level >= data.levelFilter
-        );
+        magicEffects = magicEffects.filter((e) => e.data.data.level >= data.levelFilter);
         spells = spells.filter((e) => e.data.data.level >= data.levelFilter);
-        enchantments = enchantments.filter(
-          (e) => e.data.data.level >= data.levelFilter
-        );
+        enchantments = enchantments.filter((e) => e.data.data.level >= data.levelFilter);
       }
     }
     data.baseEffects = baseEffects.sort(compareBaseEffects);
@@ -592,7 +537,7 @@ export class ArM5ePCActor extends Actor {
     let rollData = super.getRollData();
     rollData.metadata = {
       character: {},
-      magic: {},
+      magic: {}
     };
     rollData.metadata.character.abilities = CONFIG.ARM5E.character.abilities;
     rollData.metadata.magic.arts = ARM5E.magic.arts;
@@ -636,16 +581,12 @@ export class ArM5ePCActor extends Actor {
       } else if (i.type === "virtue") {
         virtues.push(i);
         if (ARM5E.impacts[i.data.impact.value]) {
-          totalVirtues =
-            parseInt(totalVirtues) +
-            parseInt(ARM5E.impacts[i.data.impact.value].cost);
+          totalVirtues = parseInt(totalVirtues) + parseInt(ARM5E.impacts[i.data.impact.value].cost);
         }
       } else if (i.type === "flaw") {
         flaws.push(i);
         if (ARM5E.impacts[i.data.impact.value]) {
-          totalFlaws =
-            parseInt(totalFlaws) +
-            parseInt(ARM5E.impacts[i.data.impact.value].cost);
+          totalFlaws = parseInt(totalFlaws) + parseInt(ARM5E.impacts[i.data.impact.value].cost);
         }
       } else if (i.type === "diaryEntry" || i.type === "dairyEntry") {
         diaryEntries.push(i);
@@ -728,16 +669,12 @@ export class ArM5ePCActor extends Actor {
       if (i.type === "virtue") {
         boons.push(i);
         if (ARM5E.impacts[i.data.impact.value]) {
-          totalVirtues =
-            parseInt(totalVirtues) +
-            parseInt(ARM5E.impacts[i.data.impact.value].cost);
+          totalVirtues = parseInt(totalVirtues) + parseInt(ARM5E.impacts[i.data.impact.value].cost);
         }
       } else if (i.type === "flaw") {
         hooks.push(i);
         if (ARM5E.impacts[i.data.impact.value]) {
-          totalFlaws =
-            parseInt(totalFlaws) +
-            parseInt(ARM5E.impacts[i.data.impact.value].cost);
+          totalFlaws = parseInt(totalFlaws) + parseInt(ARM5E.impacts[i.data.impact.value].cost);
         }
       } else if (i.type === "diaryEntry" || i.type === "dairyEntry") {
         diaryEntries.push(i);
@@ -833,8 +770,7 @@ export class ArM5ePCActor extends Actor {
     if (actorData.data.laboratoryTexts) {
       let flag = this.getFlag("arm5e", "sorting", "laboratoryTexts");
       if (flag && flag["laboratoryTexts"] == true) {
-        actorData.data.laboratoryTexts =
-          laboratoryTexts.sort(compareLabTextsData);
+        actorData.data.laboratoryTexts = laboratoryTexts.sort(compareLabTextsData);
       } else {
         actorData.data.laboratoryTexts = laboratoryTexts;
       }
@@ -887,22 +823,17 @@ export class ArM5ePCActor extends Actor {
   // To identify the type of character
   _isMagus() {
     return (
-      (this.data.type == "npc" &&
-        this.data.data.charType.value == "magusNPC") ||
+      (this.data.type == "npc" && this.data.data.charType.value == "magusNPC") ||
       (this.data.type == "player" && this.data.data.charType.value == "magus")
     );
   }
 
   _isCompanion() {
-    return (
-      this.data.type == "player" && this.data.data.charType.value == "companion"
-    );
+    return this.data.type == "player" && this.data.data.charType.value == "companion";
   }
 
   _isGrog() {
-    return (
-      this.data.type == "player" && this.data.data.charType.value == "grog"
-    );
+    return this.data.type == "player" && this.data.data.charType.value == "grog";
   }
 
   // Vitals management
@@ -933,8 +864,7 @@ export class ArM5ePCActor extends Actor {
       num--;
     }
     if (num > 0) {
-      updateData["data.wounds.light.number.value"] =
-        this.data.data.wounds.light.number.value + num;
+      updateData["data.wounds.light.number.value"] = this.data.data.wounds.light.number.value + num;
     }
     this.update(updateData, {});
   }
@@ -945,20 +875,13 @@ export class ArM5ePCActor extends Actor {
     }
 
     if (this.data.data.con.points == 0) {
-      ui.notifications.info(
-        game.i18n.format("arm5e.notification.noConfidencePointsLeft", {
-          name: this.data.name,
-        }),
-        {
-          permanent: false,
-        }
-      );
+      ui.notifications.info(game.i18n.format("arm5e.notification.noConfidencePointsLeft", { name: this.data.name }), {
+        permanent: false
+      });
       return false;
     }
     log(false, "Used confidence point");
-    await this.update({
-      data: { con: { points: this.data.data.con.points - 1 } },
-    });
+    await this.update({ data: { con: { points: this.data.data.con.points - 1 } } });
     return true;
   }
 
@@ -983,7 +906,7 @@ export class ArM5ePCActor extends Actor {
         const img = CONFIG.ARM5E_DEFAULT_ICONS[data.type];
         if (img)
           await this.data.update({
-            img,
+            img
           });
       }
     }

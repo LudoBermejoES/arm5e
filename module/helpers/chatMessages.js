@@ -9,20 +9,16 @@ function getLastMessageByHeader(game, key) {
 }
 
 function getAttackAndDefenseMessagesFromChats(game, messageDefenseId) {
-  debugger;
   let messageAttack;
-  const messageDefense =
-    messageDefenseId && game.messages.get(messageDefenseId);
+  const messageDefense = messageDefenseId && game.messages.get(messageDefenseId);
   if (messageDefense) {
     const messageAttackId = messageDefense.data?.flags?.arm5e?.originMessageId;
     messageAttack = messageAttackId && game.messages.get(messageAttackId);
   }
 
   return {
-    messageAttack:
-      messageAttack || getLastMessageByHeader(game, "arm5e.sheet.attack"),
-    messageDefense:
-      messageDefense || getLastMessageByHeader(game, "arm5e.sheet.defense"),
+    messageAttack: messageAttack || getLastMessageByHeader(game, "arm5e.sheet.attack"),
+    messageDefense: messageDefense || getLastMessageByHeader(game, "arm5e.sheet.defense")
   };
 }
 

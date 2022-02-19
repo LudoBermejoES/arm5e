@@ -165,6 +165,8 @@
 
   "arm5e.sheet.size": "Size",
   "arm5e.sheet.soak": "Soak",
+  "arm5e.sheet.soakBonus": "Soak bonus",
+
   "arm5e.sheet.contestOfMagic": "Contest of magic",
   "arm5e.sheet.spellTotal": "Spell total",
   "arm5e.sheet.spellLevel": "Spell level",
@@ -424,7 +426,7 @@
   "arm5e.spell.durations.moon": "Moon",
   "arm5e.spell.durations.fire": "Fire (Faerie)",
   "arm5e.spell.durations.bargain": "Bargain (Faerie)",
-  "arm5e.spell.durations.arcr": "Arcane Ring (Arithmetic),
+  "arm5e.spell.durations.arcr": "Arcane Ring (Arithmetic)",
   "arm5e.spell.durations.rune": "Rune (Runic)",
   "arm5e.spell.durations.40": "40 (Holy)",
   "arm5e.spell.durations.days": "Days (Astrology)",
@@ -434,7 +436,7 @@
   "arm5e.spell.durations.year+1": "Year and a day (Faerie)",
   "arm5e.spell.durations.sign": "Signs (Astrology)",
   "arm5e.spell.durations.faerie": "Faerie (Faerie)",
-  "arm5e.spell.durations.hidden": "Hidden (Faerie),
+  "arm5e.spell.durations.hidden": "Hidden (Faerie)",
   "arm5e.spell.durations.aura": "Aura (Faerie)",
   "arm5e.spell.durations.symbol": "Symbol (Faerie)",
   "arm5e.spell.durations.grace": "Grace (Holy)",
@@ -442,7 +444,7 @@
   "arm5e.spell.durations.19year": "19 Years (Hyperborean)",
   "arm5e.spell.durations.event": "Event (Defixio)",
   "arm5e.spell.durations.if": "If (Faerie)",
-  
+
   "arm5e.spell.targets.ind": "Individual",
   "arm5e.spell.targets.circle": "Circle",
   "arm5e.spell.targets.taste": "Taste (In)",
@@ -583,6 +585,7 @@
   "arm5e.dialog.button.cancel": "Cancel",
   "arm5e.dialog.button.stressdie": "Stress die",
   "arm5e.dialog.button.simpledie": "Simple die",
+  "arm5e.dialog.woundCalculator": "Wound calculator",
 
   "arm5e.notification.unconscious": "This character is unconscious, no action possible...",
   "arm5e.notification.dead": "This character is dead...",
@@ -662,5 +665,12 @@
   "arm5e.sheet.magic.voiceType.quiet": "Quiet",
   "arm5e.sheet.magic.voiceType.none": "None",
   "arm5e.sheet.magic.voice": "Voice",
-  "arm5e.sheet.magic.gestures": "Gestures"
+  "arm5e.sheet.magic.gestures": "Gestures",
+
+  "arm5e.sheet.activeEffect.changeMode": "Change Mode",
+  "arm5e.sheet.activeEffect.add": "Add ",
+  "arm5e.sheet.activeEffect.multiply": "Multiply {type} by ",
+
+  "arm5e.sheet.activeEffect.changeValue": "Effect Value",
+  "arm5e.sheet.activeEffect.type.spellcasting": "Spellcasting"
 }

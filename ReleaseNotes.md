@@ -1,5 +1,19 @@
 ## Release Notes
 
+### 1.3.2
+
+Features
+
+- active effects integration in the system
+- advanced virtues/flaws with (limited) active effects
+- additionnal spell attributes (by Lanneval)
+- updated French version (by Lanneval)
+- penetration total computed during combat
+
+Bug fixes
+
+- synthetic actors (unlinked scene tokens) are now also migrated.
+
 ### 1.3.1
 
 Features

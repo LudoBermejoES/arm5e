@@ -42,16 +42,14 @@ async function simpleDie(html, actorData, callBack) {
   }
 }
 
-async function stressDie(html, actor, flags = 0, callBack) {
+async function stressDie(html, actor, modes = 0, callBack) {
   mult = 1;
   actor = getFormData(html, actor);
   actor = getRollFormula(actor);
 
-  let name =
-    '<h2 class="ars-chat-title">' + actor.data.data.roll.label + "</h2>";
-  let dieRoll = await explodingRoll(actor, flags);
-  let flavorTxt =
-    name + game.i18n.localize("arm5e.dialog.button.stressdie") + ": <br />";
+  let name = '<h2 class="ars-chat-title">' + actor.data.data.roll.label + "</h2>";
+  let dieRoll = await explodingRoll(actor, modes);
+  let flavorTxt = name + game.i18n.localize("arm5e.dialog.button.stressdie") + ": <br />";
   let lastRoll;
   let confAllowed = actor.data.data.con.score;
   let botchCheck = 0;
@@ -460,11 +458,11 @@ async function CheckBotch(html, actorData) {
   return botchRoll.terms[0].total;
 }
 
-async function explodingRoll(actorData, flags = 0) {
+async function explodingRoll(actorData, modes = 0) {
   let dieRoll;
-  if (flags === 0) {
+  if (modes === 0) {
     dieRoll = new Roll(`1d10`);
-  } else if (flags === 1) {
+  } else if (modes === 1) {
     dieRoll = new Roll("1");
     ui.notifications.info(`${actorData.name} used DEV mode to roll a 1`);
   } else {
