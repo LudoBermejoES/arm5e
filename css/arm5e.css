@@ -501,6 +501,14 @@ input[type="time"] {
   margin-bottom: 10px;
 }
 
+.arm5e .sheet-header .profile-img img {
+  max-width: 100%;
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+
 .arm5e .sheet-header .item-img {
   -webkit-box-flex: 0;
   -ms-flex: 0 0 200px;
