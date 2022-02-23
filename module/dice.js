@@ -6,35 +6,27 @@ async function simpleDie(html, actorData, callBack) {
 
   //console.log('simple die');
   //console.log(actorData);
-  let name =
-    '<h2 class="ars-chat-title">' + actorData.data.data.roll.label + "</h2>";
+  let name = '<h2 class="ars-chat-title">' + actorData.data.data.roll.label + "</h2>";
   let formula = "1D10+" + actorData.data.data.roll.rollFormula;
   if (actorData.data.data.roll.divide > 1) {
-    formula =
-      "(1D10+" +
-      actorData.data.data.roll.rollFormula +
-      ")/" +
-      actorData.data.data.roll.divide;
+    formula = "(1D10+" + actorData.data.data.roll.rollFormula + ")/" + actorData.data.data.roll.divide;
   }
   const dieRoll = new Roll(formula, actorData.data.data);
   let tmp = await dieRoll.roll({
-    async: true,
+    async: true
   });
   const message = await tmp.toMessage({
     speaker: ChatMessage.getSpeaker({
-      actor: actorData,
+      actor: actorData
     }),
     flavor:
-      name +
-      game.i18n.localize("arm5e.dialog.button.simpledie") +
-      ": <br />" +
-      actorData.data.data.roll.rollLabel,
+      name + game.i18n.localize("arm5e.dialog.button.simpledie") + ": <br />" + actorData.data.data.roll.rollLabel,
     flags: {
       arm5e: {
-        originMessageId: actor.data.data.roll.msgId,
-        confScore: actorData.data.data.con.score,
-      },
-    },
+        originMessageId: actorData.data.data.roll.msgId,
+        confScore: actorData.data.data.con.score
+      }
+    }
   });
 
   if (callBack) {
@@ -55,31 +47,14 @@ async function stressDie(html, actor, modes = 0, callBack) {
   let botchCheck = 0;
   if (isNaN(dieRoll)) {
     if (mult > 1) {
-      flavorTxt =
-        name +
-        "<h3>" +
-        game.i18n.localize("arm5e.messages.die.exploding") +
-        "</h3><br/>";
+      flavorTxt = name + "<h3>" + game.i18n.localize("arm5e.messages.die.exploding") + "</h3><br/>";
     }
-    lastRoll = multiplyRoll(
-      mult,
-      dieRoll,
-      actor.data.data.roll.rollFormula,
-      actor.data.data.roll.divide
-    );
+    lastRoll = multiplyRoll(mult, dieRoll, actor.data.data.roll.rollFormula, actor.data.data.roll.divide);
   } else {
     if (dieRoll == 1) {
-      flavorTxt =
-        name +
-        "<h2>" +
-        game.i18n.localize("arm5e.messages.die.botch") +
-        "</h2><br/>";
+      flavorTxt = name + "<h2>" + game.i18n.localize("arm5e.messages.die.botch") + "</h2><br/>";
     } else {
-      flavorTxt =
-        name +
-        "<h2>" +
-        game.i18n.format("arm5e.messages.die.botches", { num: dieRoll }) +
-        "</h2><br/>";
+      flavorTxt = name + "<h2>" + game.i18n.format("arm5e.messages.die.botches", { num: dieRoll }) + "</h2><br/>";
     }
 
     botchCheck = 1;
@@ -93,16 +68,16 @@ async function stressDie(html, actor, modes = 0, callBack) {
   const message = await lastRoll.toMessage({
     flavor: flavorTxt + actor.data.data.roll.rollLabel,
     speaker: ChatMessage.getSpeaker({
-      actor: actor,
+      actor: actor
     }),
     flags: {
       arm5e: {
         divide: actor.data.data.roll.divide,
         originMessageId: actor.data.data.roll.msgId,
         confScore: confAllowed,
-        botchCheck: botchCheck,
-      },
-    },
+        botchCheck: botchCheck
+      }
+    }
   });
 
   if (callBack) {
@@ -176,11 +151,7 @@ function getRollFormula(actor) {
   let value = 0;
   let msg = "";
   let actorData = actor.data.data;
-  if (
-    actorData.roll.type == "spell" ||
-    actorData.roll.type == "magic" ||
-    actorData.roll.type == "spont"
-  ) {
+  if (actorData.roll.type == "spell" || actorData.roll.type == "magic" || actorData.roll.type == "spont") {
     let valueTech = 0;
     let valueForm = 0;
     if (actorData.roll.type == "spell") {
@@ -189,15 +160,10 @@ function getRollFormula(actor) {
       actorData.roll.technique = actorData.roll.spell.technique;
       actorData.roll.form = actorData.roll.spell.form;
     } else {
-      actorData.roll.techniqueText =
-        actorData.arts.techniques[actorData.roll.technique].label;
+      actorData.roll.techniqueText = actorData.arts.techniques[actorData.roll.technique].label;
       actorData.roll.formText = actorData.arts.forms[actorData.roll.form].label;
-      valueTech = parseInt(
-        actorData.arts.techniques[actorData.roll.technique].derivedScore
-      );
-      valueForm = parseInt(
-        actorData.arts.forms[actorData.roll.form].derivedScore
-      );
+      valueTech = parseInt(actorData.arts.techniques[actorData.roll.technique].derivedScore);
+      valueForm = parseInt(actorData.arts.forms[actorData.roll.form].derivedScore);
     }
     if (actorData.roll.focus === true) {
       if (valueTech < valueForm) {
@@ -236,9 +202,7 @@ function getRollFormula(actor) {
     if (msg != "") {
       msg = msg + " + <br />";
     }
-    let name = game.i18n.localize(
-      actorData.charmetadata[actorData.roll.characteristic].label
-    );
+    let name = game.i18n.localize(actorData.charmetadata[actorData.roll.characteristic].label);
     if (actorData.roll.type == "char") {
       actorData.roll.label = name;
     }
@@ -264,8 +228,7 @@ function getRollFormula(actor) {
 
     if (actorData.roll.abilitySpeciality == true) {
       total = parseInt(total) + 1;
-      msg =
-        msg + " ( + 1 " + game.i18n.localize("arm5e.sheet.speciality") + " )";
+      msg = msg + " ( + 1 " + game.i18n.localize("arm5e.sheet.speciality") + " )";
     }
   }
 
@@ -286,11 +249,7 @@ function getRollFormula(actor) {
     if (msg != "") {
       msg = msg + " + <br />";
     }
-    msg =
-      msg +
-      game.i18n.localize("arm5e.skill.artesLib") +
-      " + " +
-      game.i18n.localize("arm5e.skill.philosophy");
+    msg = msg + game.i18n.localize("arm5e.skill.artesLib") + " + " + game.i18n.localize("arm5e.skill.philosophy");
     msg = msg + " (" + value + ")";
   }
   if (actorData.roll.advantage != 0) {
@@ -362,24 +321,14 @@ function getRollFormula(actor) {
     if (msg != "") {
       msg = msg + " + <br />";
     }
-    msg =
-      msg +
-      game.i18n.localize("arm5.sheet.bonus.activeEffects") +
-      " (" +
-      actorData.roll.bonusActiveEffects +
-      ")";
+    msg = msg + game.i18n.localize("arm5.sheet.bonus.activeEffects") + " (" + actorData.roll.bonusActiveEffects + ")";
   }
   if (actorData.roll.bonus > 0) {
     total = total + actorData.roll.bonus;
     if (msg != "") {
       msg = msg + " + <br />";
     }
-    msg =
-      msg +
-      game.i18n.localize("arm5e.messages.die.bonus") +
-      " (" +
-      actorData.roll.bonus +
-      ")";
+    msg = msg + game.i18n.localize("arm5e.messages.die.bonus") + " (" + actorData.roll.bonus + ")";
   }
 
   if (actorData.roll.useFatigue == true) {
@@ -405,10 +354,7 @@ function getRollFormula(actor) {
     if (msg != "") {
       msg = msg + " + <br />";
     }
-    msg =
-      msg +
-      game.i18n.localize("arm5e.messages.die.divideBy") +
-      actorData.roll.divide;
+    msg = msg + game.i18n.localize("arm5e.messages.die.divideBy") + actorData.roll.divide;
   }
   actorData.roll.rollFormula = total;
   actorData.roll.rollLabel = msg;
@@ -421,16 +367,14 @@ async function CheckBotch(html, actorData) {
 
   let botchDice = html.find("#botchDice").val();
   if (!botchDice) {
-    return ui.notifications.info(
-      game.i18n.localize("arm5e.notification.roll.botchNum")
-    );
+    return ui.notifications.info(game.i18n.localize("arm5e.notification.roll.botchNum"));
   }
 
   let rollCommand = botchDice;
   rollCommand = rollCommand.concat("d10cf=10");
   const botchRoll = new Roll(rollCommand);
   await botchRoll.roll({
-    async: true,
+    async: true
   });
   let confAllowed = actorData.data.data.con.score;
   // TODO clean up
@@ -471,7 +415,7 @@ async function explodingRoll(actorData, modes = 0) {
   }
 
   await dieRoll.roll({
-    async: true,
+    async: true
   });
   // explode mode
   if (dieRoll.total === 1) {
@@ -509,9 +453,7 @@ async function explodingRoll(actorData, modes = 0) {
     if (mult === 1 && dieRoll.total === 10) {
       mult *= 0;
       var botchNum = 0;
-      const html = await renderTemplate(
-        "systems/arm5e/templates/roll/roll-botch.html"
-      );
+      const html = await renderTemplate("systems/arm5e/templates/roll/roll-botch.html");
 
       // show dialog
 
@@ -527,27 +469,25 @@ async function explodingRoll(actorData, modes = 0) {
                 callback: async (html) => {
                   botchNum = await CheckBotch(html, actorData);
                   resolve();
-                },
+                }
               },
               no: {
                 icon: "<i class='fas fa-times'></i>",
                 label: `Cancel`,
                 callback: (html) => {
                   ChatMessage.create({
-                    content: game.i18n.localize(
-                      "arm5e.dialog.button.rollnobotch"
-                    ),
+                    content: game.i18n.localize("arm5e.dialog.button.rollnobotch"),
                     speaker: ChatMessage.getSpeaker({
-                      actor: actorData,
-                    }),
+                      actor: actorData
+                    })
                   });
                   resolve();
-                },
-              },
-            },
+                }
+              }
+            }
           },
           {
-            classes: ["arm5e-dialog", "dialog"],
+            classes: ["arm5e-dialog", "dialog"]
           }
         ).render(true);
       });
@@ -573,8 +513,7 @@ function multiplyRoll(mult, roll, rollFormula, divide) {
   //    output_roll.terms.push("/"+ divide);
   //}
   output_roll._evaluated = true;
-  output_roll._total =
-    (mult * roll._total + parseInt(rollFormula)) / parseInt(divide);
+  output_roll._total = (mult * roll._total + parseInt(rollFormula)) / parseInt(divide);
 
   return output_roll;
 }
