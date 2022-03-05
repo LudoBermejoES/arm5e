@@ -36,10 +36,12 @@ export class ArM5ePCActor extends Actor {
     if (this._isMagus()) {
       for (let key of Object.keys(this.data.data.arts.techniques)) {
         this.data.data.arts.techniques[key].bonus = 0;
+        this.data.data.arts.techniques[key].xpCoeff = 1.0;
       }
 
       for (let key of Object.keys(this.data.data.arts.forms)) {
         this.data.data.arts.forms[key].bonus = 0;
+        this.data.data.arts.forms[key].xpCoeff = 1.0;
       }
 
       this.data.data.bonuses.arts = {
@@ -49,12 +51,13 @@ export class ArM5ePCActor extends Actor {
       };
     }
 
-    // Not needed, done at Item level?
-    // this.items.forEach((item) => {
+    // this.data.data.bonuses.skills = {};
+    // for (const [key, item] of this.items.entries()) {
     //   if (item.type == "ability") {
-    //     item.data.data.bonus = 0;
+    //     this.data.data.bonuses.skills[key].bonus = 0;
+    //     this.data.data.bonuses.skills[key].xpCoeff = 1.0;
     //   }
-    // });
+    // }
 
     this.data.data.bonuses.traits = { soak: 0 };
   }
@@ -149,14 +152,6 @@ export class ArM5ePCActor extends Actor {
       // ItemData#data now contains the data
       let i = item.data;
       if (i.type === "ability") {
-        i.data.derivedScore = this._getAbilityScore(i.data.xp);
-        // if (i.data.score != i.data.derivedScore && i.data.xp != 0) {
-        //     error(false, "Wrong computation of score: Original: " + i.data.score + " vs Computed: " + i.data.derivedScore + " XPs:" + i.data.xp);
-        //     this._getAbilityScore(i.data.xp);
-        // }
-        i.data.xpNextLevel = (i.data.derivedScore + 1) * 5;
-        i.data.remainingXp = i.data.xp - this._getAbilityXp(i.data.derivedScore);
-
         abilities.push(i);
 
         const temp = {
@@ -351,9 +346,26 @@ export class ArM5ePCActor extends Actor {
       }
 
       for (let [key, technique] of Object.entries(data.arts.techniques)) {
-        technique.derivedScore = this._getArtScore(technique.xp);
+        // TODO remove once confirmed there is no bug
+        // if (technique.xpCoeff != 1.0) {
+        //   log(false, `xpCoeff: ${technique.xpCoeff}`);
+        //   let newxp = technique.xp * technique.xpCoeff;
+        //   log(false, `Xp: ${technique.xp} and after afinity: ${newxp}`);
+        //   let score = this._getArtScore(technique.xp);
+        //   let affinityscore = this._getArtScore(Math.round(technique.xp * technique.xpCoeff));
+        //   log(false, `score : ${score} and after afinity: ${affinityscore}`);
+        //   let nextLvl = this._getArtXp(affinityscore + 1) / technique.xpCoeff - technique.xp;
+        //   let afterAffinity = nextLvl / technique.xpCoeff;
+        //   log(false, `xpNextLvl: ${nextLvl} and after afinity: ${afterAffinity}`);
+        // }
+        // end TODO
+
+        technique.derivedScore = this._getArtScore(Math.round(technique.xp * technique.xpCoeff));
         technique.finalScore = technique.derivedScore + technique.bonus;
-        technique.xpNextLevel = this._getArtXp(technique.derivedScore + 1) - technique.xp;
+        // start from scratch to avoid rounding errors
+        technique.xpNextLevel =
+          Math.round(this._getArtXp(technique.derivedScore + 1) / technique.xpCoeff) - technique.xp;
+
         // TODO remove once confirmed there is no bug
         // if (technique.score != technique.derivedScore && technique.xp != 0) {
         //   error(
@@ -372,9 +384,24 @@ export class ArM5ePCActor extends Actor {
       }
 
       for (let [key, form] of Object.entries(data.arts.forms)) {
-        form.derivedScore = this._getArtScore(form.xp);
+        // TODO remove once confirmed there is no bug
+        // if (form.xpCoeff != 1.0) {
+        //   log(false, `xpCoeff: ${form.xpCoeff}`);
+        //   let newxp = form.xp * form.xpCoeff;
+        //   log(false, `Xp: ${form.xp} and after afinity: ${newxp}`);
+        //   let score = this._getArtScore(form.xp);
+        //   let affinityscore = this._getArtScore(Math.round(form.xp * form.xpCoeff));
+        //   log(false, `score : ${score} and after afinity: ${affinityscore}`);
+        //   let nextLvl = this._getArtXp(affinityscore + 1) / form.xpCoeff - form.xp;
+        //   let afterAffinity = nextLvl / form.xpCoeff;
+        //   log(false, `xpNextLvl: ${nextLvl} and after afinity: ${afterAffinity}`);
+        // }
+        // // end TODO
+
+        form.derivedScore = this._getArtScore(Math.round(form.xp * form.xpCoeff));
         form.finalScore = form.derivedScore + form.bonus;
-        form.xpNextLevel = this._getArtXp(form.derivedScore + 1) - form.xp;
+
+        form.xpNextLevel = Math.round(this._getArtXp(form.derivedScore + 1) / form.xpCoeff) - form.xp;
         // TODO remove once confirmed there is no bug
         // if (form.score != form.derivedScore && form.xp != 0) {
         //   error(
@@ -539,7 +566,7 @@ export class ArM5ePCActor extends Actor {
       character: {},
       magic: {}
     };
-    rollData.metadata.character.abilities = CONFIG.ARM5E.character.abilities;
+    rollData.metadata.character.magicAbilities = CONFIG.ARM5E.character.magicAbilities;
     rollData.metadata.magic.arts = ARM5E.magic.arts;
     return rollData;
   }

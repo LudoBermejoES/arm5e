@@ -10,6 +10,16 @@ export async function migration(originalVersion) {
 
   console.log("Starting migration...");
 
+  // create the list of abilities
+  CONFIG.ARM5E.ALL_SKILLS = Object.entries({
+    ...CONFIG.ARM5E.character.abilities.general,
+    ...CONFIG.ARM5E.character.abilities.martial,
+    ...CONFIG.ARM5E.character.abilities.academic,
+    ...CONFIG.ARM5E.character.abilities.arcane,
+    ...CONFIG.ARM5E.character.abilities.supernatural,
+    ...CONFIG.ARM5E.character.abilities.mystery
+  });
+
   // Migrate World Actors
   for (let a of game.actors.contents) {
     try {
@@ -76,6 +86,13 @@ export async function migration(originalVersion) {
       console.error(err);
     }
   }
+
+  // [DEV] Uncomment below to migrate system compendiums
+  // for (let p of game.packs) {
+  //   if (p.metadata.package !== "arm5e") continue;
+  //   if (!["Actor", "Item", "Scene"].includes(p.documentName)) continue;
+  //   await migrateCompendium(p);
+  // }
 
   // Migrate World Compendium Packs
   for (let p of game.packs) {
@@ -217,9 +234,10 @@ export const migrateActorData = function (actorData) {
   //updateData["type"] = "player";
   updateData["data.version"] = "0.3";
 
-  // if (actorData.data.diaryEntries === undefined) {
-  //   updateData["data.diaryEntries"] = [];
-  // }
+  // token with barely anything to migrate
+  if (actorData.data == undefined) {
+    return updateData;
+  }
   // convert after fixing typo dairy => diary
   if (actorData.data.dairyEntries) {
     updateData["data.diaryEntries"] = actorData.data.dairyEntries;
@@ -304,12 +322,12 @@ export const migrateActorData = function (actorData) {
 
   if (actorData.type == "player" || actorData.type == "npc") {
     if (actorData.data.charType.value == "magus" || actorData.data.charType.value == "magusNPC") {
-      if (actorData.data?.sanctum?.value === undefined) {
-        let sanctum = {
-          value: actorData.data.sanctum
-        };
-        updateData["data.sanctum"] = sanctum;
-      }
+      // if (actorData.data?.sanctum?.value === undefined) {
+      //   let sanctum = {
+      //     value: actorData.data.sanctum
+      //   };
+      //   updateData["data.sanctum"] = sanctum;
+      // }
 
       if (actorData.data?.laboratory != undefined) {
         updateData["data.laboratory.longevityRitual.labTotal"] = 0;
@@ -394,34 +412,31 @@ export const migrateActorData = function (actorData) {
   }
 
   if (actorData.effects) {
-    const effects = actorData.effects.reduce((arr, e) => {
-      // Migrate effects
-      const effectData = e instanceof CONFIG.ActiveEffect.documentClass ? e.toObject() : e;
-      let effectUpdate = { arm5e: {} };
-      // update flags
-      if (e.data.flags.type != undefined) {
-        effectUpdate["data.flags.arm5e.type"] = [e.data.flags.type];
-        effectUpdate["data.flags.-=type"] = null;
-      }
-
-      if (e.data.flags.subtype != undefined) {
-        effectUpdate["data.flags.arm5e.subtype"] = [e.data.flags.subtype];
-        effectUpdate["data.flags.-=subtype"] = null;
-      }
-
-      if (e.data.flags.value != undefined) {
-        effectUpdate["data.flags.arm5e.value"] = [e.data.flags.value];
-        effectUpdate["data.flags.-=value"] = null;
-      }
-
-      // Update the effect
-      if (!isObjectEmpty(effectUpdate)) {
-        effectUpdate._id = effectData._id;
-        arr.push(expandObject(effectUpdate));
-      }
-      return arr;
-    }, []);
-    if (effects.length > 0) updateData.effects = effects;
+    // const effects = actorData.effects.reduce((arr, e) => {
+    //   // Migrate effects
+    //   const effectData = e instanceof CONFIG.ActiveEffect.documentClass ? e.toObject() : e;
+    //   let effectUpdate = { arm5e: {} };
+    //   // update flags
+    //   if (e.data.flags.type != undefined) {
+    //     effectUpdate["data.flags.arm5e.type"] = [e.data.flags.type];
+    //     effectUpdate["data.flags.-=type"] = null;
+    //   }
+    //   if (e.data.flags.subtype != undefined) {
+    //     effectUpdate["data.flags.arm5e.subtype"] = [e.data.flags.subtype];
+    //     effectUpdate["data.flags.-=subtype"] = null;
+    //   }
+    //   if (e.data.flags.value != undefined) {
+    //     effectUpdate["data.flags.arm5e.value"] = [e.data.flags.value];
+    //     effectUpdate["data.flags.-=value"] = null;
+    //   }
+    //   // Update the effect
+    //   if (!isObjectEmpty(effectUpdate)) {
+    //     effectUpdate._id = effectData._id;
+    //     arr.push(expandObject(effectUpdate));
+    //   }
+    //   return arr;
+    // }, []);
+    // if (effects.length > 0) updateData.effects = effects;
   }
 
   // Migrate Owned Items
@@ -448,23 +463,63 @@ export const migrateItemData = function (itemData) {
   //
   // migrate abilities xp
   //
-  if (itemData.type === "ability" && itemData.data.experienceNextLevel != undefined) {
-    // if the experience is equal or bigger than the xp for this score, use it as total xp
-    let exp = ((itemData.data.score * (itemData.data.score + 1)) / 2) * 5;
-    if (itemData.data.experience >= exp) {
-      updateData["data.xp"] = itemData.data.experience;
-    } else if (itemData.data.experience >= (itemData.data.score + 1) * 5) {
-      // if the experience is bigger than the neeeded for next level, ignore it
-      updateData["data.xp"] = exp;
-    } else {
-      // compute normally
-      updateData["data.xp"] = exp + itemData.data.experience;
+  if (itemData.type === "ability") {
+    if (itemData.data.experienceNextLevel != undefined) {
+      // if the experience is equal or bigger than the xp for this score, use it as total xp
+      let exp = ((itemData.data.score * (itemData.data.score + 1)) / 2) * 5;
+      if (itemData.data.experience >= exp) {
+        updateData["data.xp"] = itemData.data.experience;
+      } else if (itemData.data.experience >= (itemData.data.score + 1) * 5) {
+        // if the experience is bigger than the neeeded for next level, ignore it
+        updateData["data.xp"] = exp;
+      } else {
+        // compute normally
+        updateData["data.xp"] = exp + itemData.data.experience;
+      }
+      // TODO: to be uncommentedm when we are sure the new system works
+      // updateData["data.-=experience"] = null;
+      // updateData["data.-=score"] = null;
+      updateData["data.-=experienceNextLevel"] = null;
     }
 
-    // TODO: to be uncommentedm when we are sure the new system works
-    // updateData["data.-=experience"] = null;
-    // updateData["data.-=score"] = null;
-    updateData["data.-=experienceNextLevel"] = null;
+    // no key assigned to the ability, try to find one
+    if (itemData.data.key == "") {
+      log(true, `Trying to find key for ability ${itemData.name}`);
+      let name = itemData.name.toLowerCase();
+      // handle those pesky '*' at the end of restricted abilities
+      if (name.endsWith("*")) {
+        name = name.substring(0, name.length - 1);
+      }
+
+      // Special common cases
+      if (game.i18n.localize("arm5e.skill.commonCases.native").toLowerCase() == name) {
+        updateData["data.key"] = "livingLanguage";
+        updateData["data.option"] = "Native tongue";
+        log(false, `Found key livingLanguage for ability  ${itemData.name}`);
+      } else if (game.i18n.localize("arm5e.skill.commonCases.areaLore").toLowerCase() == name) {
+        updateData["data.key"] = "areaLore";
+        log(false, `Found key areaLore for ability  ${itemData.name}`);
+      } else if (game.i18n.localize("arm5e.skill.commonCases.latin").toLowerCase() == name) {
+        updateData["data.key"] = "deadLanguage";
+        updateData["data.option"] = "Latin";
+        log(false, `Found key latin for ability  ${itemData.name}`);
+      } else if (game.i18n.localize("arm5e.skill.commonCases.hermesLore").toLowerCase() == name) {
+        updateData["data.key"] = "hermesLore";
+        updateData["data.option"] = "Order of Hermes";
+        log(false, `Found key hermesLore for ability  ${itemData.name}`);
+      } else {
+        for (const [key, value] of CONFIG.ARM5E.ALL_SKILLS) {
+          if (game.i18n.localize(value.mnemonic).toLowerCase() == name) {
+            updateData["data.key"] = key;
+            log(false, `Found key ${key} for ability  ${itemData.name}`);
+            break;
+          }
+        }
+      }
+      if (updateData["data.key"] == undefined) {
+        log(true, `Unable to find a key for ability  ${itemData.name}`);
+      }
+    }
   }
 
   if (_isMagicalItem(itemData)) {
@@ -534,6 +589,11 @@ export const migrateItemData = function (itemData) {
       updateData["type"] = "powerFamiliar";
     }
   }
+
+  // if (itemData.effects) {
+  //   log(false, `Effects of items: ${itemData.effects}`);
+  // }
+
   return updateData;
 };
 
@@ -694,7 +754,7 @@ function _guessTarget(name, value) {
   }
 }
 
-// Unfortunaltly, since the duration was a free input field, it has to be guessed
+// Unfortunaltely, since the duration was a free input field, it has to be guessed
 function _guessDuration(name, value) {
   switch (value.toLowerCase().trim()) {
     case "moment":

@@ -23,8 +23,8 @@ async function onManageActiveEffect(event, owner) {
           changes: [],
           flags: {
             arm5e: {
-              type: ["spellcasting"],
-              subtype: ["none"]
+              type: [],
+              subtype: []
             }
           }
         }
@@ -82,38 +82,17 @@ function findAllActiveEffectsWithType(effects, type) {
   const activeEffects = [];
   for (let e of effects) {
     e._getSourceName(); // Trigger a lookup for the source name
-    if (!e.data.disabled && e?.getFlag("arm5e", "type")?.includes(type.toUpperCase())) {
+    if (!e.data.disabled && e?.getFlag("arm5e", "type")?.includes(type)) {
       activeEffects.push(e);
     }
   }
   return activeEffects;
-}
-
-function findAllActiveEffectsByAffectedKey(effects, key) {
-  const activeEffects = [];
-  for (let e of effects) {
-    e._getSourceName(); // Trigger a lookup for the source name
-    if (!e.data.disabled && e.data.changes.find((change) => change.key === key)) {
-      activeEffects.push(e);
-    }
-  }
-  return activeEffects;
-}
-
-function findFirstActiveEffectByType(effects, type) {
-  for (let e of effects) {
-    e._getSourceName(); // Trigger a lookup for the source name
-    if (!e.data.disabled && e.data.flags.type.toUpperCase() === type.toUpperCase()) {
-      return e;
-    }
-  }
-  return false;
 }
 
 function findFirstActiveEffectBySubtype(effects, subtype) {
   for (let e of effects) {
     e._getSourceName(); // Trigger a lookup for the source name
-    if (!e.data.disabled && e?.getFlag("arm5e", "subType")?.includes(subtype.toUpperCase())) {
+    if (!e.data.disabled && e?.getFlag("arm5e", "subType")?.includes(subtype)) {
       return e;
     }
   }
@@ -149,7 +128,6 @@ export {
   onManageActiveEffect,
   prepareActiveEffectCategories,
   findAllActiveEffectsWithType,
-  findAllActiveEffectsByAffectedKey,
   findFirstActiveEffectBySubtype,
   buildActiveEffectDescription
 };

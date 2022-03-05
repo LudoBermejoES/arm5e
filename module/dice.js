@@ -249,7 +249,11 @@ function getRollFormula(actor) {
     if (msg != "") {
       msg = msg + " + <br />";
     }
-    msg = msg + game.i18n.localize("arm5e.skill.artesLib") + " + " + game.i18n.localize("arm5e.skill.philosophy");
+    msg =
+      msg +
+      game.i18n.localize("arm5e.skill.academic.artesLib") +
+      " + " +
+      game.i18n.localize("arm5e.skill.academic.philosophy");
     msg = msg + " (" + value + ")";
   }
   if (actorData.roll.advantage != 0) {
@@ -376,29 +380,7 @@ async function CheckBotch(html, actorData) {
   await botchRoll.roll({
     async: true
   });
-  let confAllowed = actorData.data.data.con.score;
-  // TODO clean up
-  // if (botchRoll.result == 0) {
-  //   resultMessage = "<p>No botch!</p>";
-  // } else if (botchRoll.result == 1) {
-  //   confAllowed = 0;
-  //   resultMessage = "<p>BOTCH: " + botchRoll.result + " zero was rolled.</p>";
-  // } else if (botchRoll.result > 1) {
-  //   confAllowed = 0;
-  //   resultMessage = "<p>BOTCH: " + botchRoll.result + " zeros were rolled.</p>";
-  // }
-  // botchRoll.toMessage({
-  //   flavor: resultMessage,
-  //   speaker: ChatMessage.getSpeaker({
-  //     actor: actorData
-  //   }),
-  //   flags: {
-  //     arm5e: {
-  //       confScore: confAllowed,
-  //       dieRoll: botchRoll.terms[0].total
-  //     }
-  //   }
-  // });
+
   return botchRoll.terms[0].total;
 }
 
@@ -420,35 +402,37 @@ async function explodingRoll(actorData, modes = 0) {
   // explode mode
   if (dieRoll.total === 1) {
     mult *= 2;
-
-    // TODO : WIP
-    // let data = {
-    //   msg:
-    //     game.i18n.localize("arm5e.dialog.roll.exploding.multiplier") +
-    //     " : " +
-    //     mult,
-    // };
-    // renderTemplate("systems/arm5e/templates/generic/infoBox.html", data).then(
-    //   function (html) {
-    //     new Dialog(
-    //       {
-    //         title: game.i18n.localize("arm5e.dialog.roll.explodingroll"),
-    //         content: html,
-    //         buttons: {
-    //           yes: {
-    //             icon: "<i class='fas fa-check'></i>",
-    //             label: game.i18n.localize("arm5e.dialog.button.roll"),
-    //             callback: (html) => null,
-    //           },
-    //         },
-    //       },
-    //       {
-    //         classes: ["arm5e-dialog", "dialog"],
-    //       }
-    //     ).render(true);
-    //   }
-    // );
-    dieRoll = await explodingRoll();
+    let funRolls = game.settings.get("arm5e", "funRolls");
+    let withDialog = funRolls == "EVERYONE" || (funRolls == "PLAYER_ONLY" && actorData.hasPlayerOwner);
+    if (withDialog) {
+      let data = {
+        msg: game.i18n.localize("arm5e.dialog.roll.exploding.multiplier") + " : " + mult
+      };
+      const html = await renderTemplate("systems/arm5e/templates/generic/infoBox.html", data);
+      await new Promise((resolve) => {
+        new Dialog(
+          {
+            title: game.i18n.localize("arm5e.dialog.roll.explodingroll"),
+            content: html,
+            buttons: {
+              yes: {
+                icon: "<i class='fas fa-check'></i>",
+                label: game.i18n.localize("arm5e.dialog.button.roll"),
+                callback: async (html) => {
+                  dieRoll = await explodingRoll();
+                  resolve();
+                }
+              }
+            }
+          },
+          {
+            classes: ["arm5e-dialog", "dialog"]
+          }
+        ).render(true);
+      });
+    } else {
+      dieRoll = await explodingRoll();
+    }
   } else {
     if (mult === 1 && dieRoll.total === 10) {
       mult *= 0;

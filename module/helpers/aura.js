@@ -1,42 +1,45 @@
 import ACTIVE_EFFECTS_TYPES from "../constants/activeEffectsTypes.js";
-import { findAllActiveEffectsWithType } from "./active-effects.js";
+import { findFirstActiveEffectBySubtype } from "./active-effects.js";
 
-function getAuraActiveEffect(value) {
-  const changeData = ACTIVE_EFFECTS_TYPES.aura.keys.map((key) => ({
-    key,
-    value: Number(value),
-    mode: CONST.ACTIVE_EFFECT_MODES.ADD,
-    priority: 20
-  }));
+const ICON = "icons/magic/defensive/barrier-shield-dome-blue-purple.webp";
+
+function getAuraActiveEffect(numericValue) {
   const label = `${game.i18n.localize("arm5e.sheet.levelAura")}`;
-  // create a new Active Effect
+
+  const changeData = [
+    {
+      key: ACTIVE_EFFECTS_TYPES.spellcasting.subtypes.aura.key,
+      value: numericValue,
+      mode: CONST.ACTIVE_EFFECT_MODES.ADD
+    }
+  ];
   const activeEffectData = {
     label: label,
-    icon: ACTIVE_EFFECTS_TYPES.aura.icon,
+    icon: ICON,
     duration: {
       rounds: undefined
     },
     flags: {
       arm5e: {
-        type: ACTIVE_EFFECTS_TYPES.aura.type.toUpperCase()
+        type: ["spellcasting"],
+        subType: ["aura"],
+        value: ["AURA"]
       }
     },
-    changes: changeData
+    changes: changeData,
+    tint: "#000000"
   };
+
   return activeEffectData;
 }
 
 async function addEffect(actor, activeEffectData) {
-  const ae = findAllActiveEffectsWithType(actor.data.effects, ACTIVE_EFFECTS_TYPES.aura.type);
-  for (let i = 0; i <= ae.length - 1; i++) {
-    await ae[i].delete();
+  const ae = findFirstActiveEffectBySubtype(actor.data.effects, "aura");
+  if (ae) {
+    activeEffectData._id = ae.data._id;
+    return await actor.updateEmbeddedDocuments("ActiveEffect", [activeEffectData]);
   }
-
-  const effect = {
-    ...activeEffectData,
-    origin: actor.uuid
-  };
-  await ActiveEffect.create(effect, { parent: actor });
+  return await actor.createEmbeddedDocuments("ActiveEffect", [activeEffectData]);
 }
 
 async function modifyAuraActiveEffectForAllTokensInScene(value) {

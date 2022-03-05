@@ -152,6 +152,28 @@ export class ArM5eActorSheet extends ActorSheet {
             context.data.sanctum.linked = false;
           }
         }
+        for (let [key, technique] of Object.entries(context.data.arts.techniques)) {
+          if (!technique.bonus && technique.xpCoeff == 1.0) {
+            technique.ui = { shadow: "" };
+          } else if (!technique.bonus && technique.xpCoeff != 1.0) {
+            technique.ui = { shadow: "maroon", title: "Affinity, " };
+          } else if (technique.bonus && technique.xpCoeff == 1.0) {
+            technique.ui = { shadow: "blue", title: "" };
+          } else {
+            technique.ui = { shadow: "purple", title: "Affinity, " };
+          }
+        }
+        for (let [key, form] of Object.entries(context.data.arts.forms)) {
+          if (!form.bonus && form.xpCoeff == 1.0) {
+            form.ui = { shadow: "" };
+          } else if (!form.bonus && form.xpCoeff != 1.0) {
+            form.ui = { shadow: "maroon", title: "Affinity, " };
+          } else if (form.bonus && form.xpCoeff == 1.0) {
+            form.ui = { shadow: "blue", title: "" };
+          } else {
+            form.ui = { shadow: "purple", title: "Affinity, " };
+          }
+        }
       }
 
       context.data.world.covenants = game.actors
@@ -170,6 +192,8 @@ export class ArM5eActorSheet extends ActorSheet {
         }
       }
     }
+    context.isGM = game.user.isGM;
+
     context.devMode = game.modules.get("_dev-mode")?.api?.getPackageDebugValue(ARM5E.MODULE_ID);
     // Add roll data for TinyMCE editors.
     context.rollData = context.actor.getRollData();
@@ -315,13 +339,15 @@ export class ArM5eActorSheet extends ActorSheet {
 
   async _increaseArt(type, art) {
     let oldXp = this.actor.data.data.arts[type][art].xp;
-    let updateData = {};
-    updateData[`data.arts.${type}.${art}.xp`] =
+    let newXp = Math.round(
       ((this.actor.data.data.arts[type][art].derivedScore + 1) *
         (this.actor.data.data.arts[type][art].derivedScore + 2)) /
-      2;
+        (2 * this.actor.data.data.arts[type][art].xpCoeff)
+    );
+    let updateData = {};
+    updateData[`data.arts.${type}.${art}.xp`] = newXp;
     await this.actor.update(updateData, {});
-    let newXp = this.actor.data.data.arts[type][art].xp;
+
     let delta = newXp - oldXp;
     console.log(`Added ${delta} xps from ${oldXp} to ${newXp}`);
   }
@@ -329,13 +355,14 @@ export class ArM5eActorSheet extends ActorSheet {
   async _deccreaseArt(type, art) {
     if (this.actor.data.data.arts[type][art].derivedScore != 0) {
       let oldXp = this.actor.data.data.arts[type][art].xp;
-      let updateData = {};
-      updateData[`data.arts.${type}.${art}.xp`] =
+      let newXp = Math.round(
         ((this.actor.data.data.arts[type][art].derivedScore - 1) * this.actor.data.data.arts[type][art].derivedScore) /
-        2;
+          (2 * this.actor.data.data.arts[type][art].xpCoeff)
+      );
+      let updateData = {};
+      updateData[`data.arts.${type}.${art}.xp`] = newXp;
 
       await this.actor.update(updateData, {});
-      let newXp = this.actor.data.data.arts[type][art].xp;
       let delta = newXp - oldXp;
       console.log(`Removed ${delta} xps from ${oldXp} to ${newXp} total`);
     }
@@ -520,7 +547,7 @@ export class ArM5eActorSheet extends ActorSheet {
     if (charType === "magus" || charType === "magusNPC") {
       let abilities = this.actor.items.filter((i) => i.type == "ability");
       let newAbilities = [];
-      for (let [key, a] of Object.entries(CONFIG.ARM5E.character.abilities)) {
+      for (let [key, a] of Object.entries(CONFIG.ARM5E.character.magicAbilities)) {
         let localizedA = game.i18n.localize(a);
         // check if the ability already exists in the Actor
         let abs = abilities.filter((ab) => ab.name == localizedA || ab.name === localizedA + "*");
