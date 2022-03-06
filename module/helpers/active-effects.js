@@ -67,13 +67,15 @@ function prepareActiveEffectCategories(effects) {
   for (let e of effects) {
     e._getSourceName(); // Trigger a lookup for the source name
     // if the effect is from an Item (virtue, etc) and is owned prevent edition
-    e.data.noEdit =
-      (e.parent.documentName === "Item" && e.parent.isOwned == true) ||
-      (e.parent.documentName === "Actor" && e.data.origin.includes("Item"));
-    // e.data.descr = buildActiveEffectDescription(e);
-    if (e.data.disabled) categories.inactive.effects.push(e);
-    else if (e.isTemporary) categories.temporary.effects.push(e);
-    else categories.passive.effects.push(e);
+    if (e.data) {
+      e.data.noEdit =
+        (e.parent.documentName === "Item" && e.parent.isOwned == true) ||
+        (e.parent.documentName === "Actor" && e.data.origin && e.data.origin.includes("Item"));
+      // e.data.descr = buildActiveEffectDescription(e);
+      if (e.data.disabled) categories.inactive.effects.push(e);
+      else if (e.isTemporary) categories.temporary.effects.push(e);
+      else categories.passive.effects.push(e);
+    }
   }
   return categories;
 }

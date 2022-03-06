@@ -10,10 +10,9 @@ function getActorsFromTargetedTokens() {
 function getActorFromToken() {
   const tokensControlled = canvas.tokens.controlled;
   if (tokensControlled.length !== 1) {
-    ui.notifications.warn(
-      game.i18n.localize("arm5e.notification.onlyOneToken")
-    );
+    ui.notifications.warn(game.i18n.localize("arm5e.notification.onlyOneToken"));
   }
+  debugger;
   return tokensControlled[0].actor;
 }
 

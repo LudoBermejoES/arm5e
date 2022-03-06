@@ -3,7 +3,6 @@
  * @extends {ActorSheet}
  */
 
-import { simpleDie, stressDie } from "../dice.js";
 import { resetOwnerFields } from "../item/item-converter.js";
 import { ARM5E } from "../metadata.js";
 import { log, calculateWound, getDataset } from "../tools.js";
@@ -20,6 +19,7 @@ import {
   chooseTemplate
 } from "../helpers/rollWindow.js";
 import { getAttackAndDefenseMessagesFromChats, getDamageMessageFromChats } from "../helpers/chatMessages.js";
+import { getActorFromToken } from "../helpers/tokens.js";
 
 export class ArM5eActorSheet extends ActorSheet {
   // /** @override */
