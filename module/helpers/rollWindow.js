@@ -1,5 +1,5 @@
 import { ARM5E } from "../metadata.js";
-import { findAllActiveEffectsWithType } from "./active-effects.js";
+import ArM5eActiveEffect from "./active-effects.js";
 import { simpleDie, stressDie } from "../dice.js";
 import { getActorsFromTargetedTokens } from "./tokens.js";
 import { calculateSuccessOfMagic } from "./magic.js";
@@ -125,7 +125,7 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
 
       if (dataset.bonusActiveEffects) {
         actorData.data.roll.bonusActiveEffects = Number(dataset.bonusActiveEffects);
-        const activeEffectsByType = findAllActiveEffectsWithType(activeEffects, "spellcasting");
+        const activeEffectsByType = ArM5eActiveEffect.findAllActiveEffectsWithType(activeEffects, "spellcasting");
         actorData.data.roll.activeEffects = activeEffectsByType.map((activeEffect) => {
           const label = activeEffect.data.label;
           let value = 0;
@@ -335,7 +335,6 @@ async function renderRollTemplate(dataset, template, actor, actorData) {
       height: "auto"
     }
   );
-
   dialog.render(true);
 }
 
