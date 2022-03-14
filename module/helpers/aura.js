@@ -1,6 +1,5 @@
 import ACTIVE_EFFECTS_TYPES from "../constants/activeEffectsTypes.js";
-import { findFirstActiveEffectBySubtype } from "./active-effects.js";
-
+import ArM5eActiveEffect from "./active-effects.js";
 const ICON = "icons/magic/defensive/barrier-shield-dome-blue-purple.webp";
 
 function getAuraActiveEffect(numericValue) {
@@ -34,7 +33,7 @@ function getAuraActiveEffect(numericValue) {
 }
 
 async function addEffect(actor, activeEffectData) {
-  const ae = findFirstActiveEffectBySubtype(actor.data.effects, "aura");
+  const ae = ArM5eActiveEffect.findFirstActiveEffectBySubtype(actor.data.effects, "aura");
   if (ae) {
     activeEffectData._id = ae.data._id;
     return await actor.updateEmbeddedDocuments("ActiveEffect", [activeEffectData]);
