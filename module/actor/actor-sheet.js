@@ -3,13 +3,25 @@
  * @extends {ActorSheet}
  */
 
-import { simpleDie, stressDie } from "../dice.js";
 import { resetOwnerFields } from "../item/item-converter.js";
-import { ARM5E } from "../metadata.js";
-import { log, getLastMessageByHeader, calculateWound, getDataset } from "../tools.js";
+import { ARM5E } from "../config.js";
+import {
+  log,
+  getLastMessageByHeader,
+  calculateWound,
+  getDataset,
+  compareSpellsData,
+  compareMagicalEffectsData,
+  hermeticFilter,
+  putInFoldableLink
+} from "../tools.js";
 import ArM5eActiveEffect from "../helpers/active-effects.js";
 import { VOICE_AND_GESTURES_VALUES } from "../constants/voiceAndGestures.js";
-import { findVoiceAndGesturesActiveEffects, modifyVoiceOrGesturesActiveEvent } from "../helpers/voiceAndGestures.js";
+import { HERMETIC_FILTER, updateUserCache } from "../constants/userdata.js";
+import {
+  findVoiceAndGesturesActiveEffects,
+  modifyVoiceOrGesturesActiveEvent
+} from "../helpers/voiceAndGestures.js";
 
 import {
   prepareRollVariables,
@@ -17,8 +29,12 @@ import {
   cleanBooleans,
   updateCharacteristicDependingOnRoll,
   renderRollTemplate,
-  chooseTemplate
+  chooseTemplate,
+  ROLL_MODES,
+  getRollTypeProperties
 } from "../helpers/rollWindow.js";
+
+import { spellTechniqueLabel, spellFormLabel } from "../helpers/spells.js";
 
 export class ArM5eActorSheet extends ActorSheet {
   // /** @override */
@@ -29,21 +45,23 @@ export class ArM5eActorSheet extends ActorSheet {
          template: "systems/arm5e/templates/actor/actor-pc-sheet.html",
          width: 1100,
          height: 900,
-         tabs: [{
-             navSelector: ".sheet-tabs",
-             contentSelector: ".sheet-body",
-             initial: "description"
-         }]*/
+      tabs: [
+        {
+          navSelector: ".sheet-tabs",
+          contentSelector: ".sheet-body",
+          initial: "description"
+        }
+      ]*/
     });
   }
 
   /* -------------------------------------------- */
 
-  isItemDropAllowed(type) {
+  isItemDropAllowed(itemData) {
     return false;
 
     // template for future sheet:
-    // switch (type) {
+    // switch (itemData.type) {
     //     case "weapon":
     //     case "armor":
     //     case "spell":
@@ -119,8 +137,8 @@ export class ArM5eActorSheet extends ActorSheet {
     context.data = actorData.data;
     context.flags = actorData.flags;
 
-    context.metadata = CONFIG.ARM5E;
-    context.metadata.constants = { VOICE_AND_GESTURES_VALUES: VOICE_AND_GESTURES_VALUES };
+    context.config = CONFIG.ARM5E;
+    context.config.constants = { VOICE_AND_GESTURES_VALUES: VOICE_AND_GESTURES_VALUES };
 
     context.data.dtypes = ["String", "Number", "Boolean"];
 
@@ -129,50 +147,33 @@ export class ArM5eActorSheet extends ActorSheet {
     //   attr.isCheckbox = attr.dtype === "Boolean";
     // }
 
+    // Allow effect creation
+    actorData.data.effectCreation = true;
+
     if (actorData.type == "player" || actorData.type == "npc") {
-      context.data.world = {};
-      if (context.data.charType.value == "magusNPC" || context.data.charType.value == "magus") {
-        // Arts icons style
-        context.artsIcons = game.settings.get("arm5e", "artsIcons");
-        context.data.world.labs = game.actors
-          .filter((a) => a.type == "laboratory")
-          .map(({ name, id }) => ({
-            name,
-            id
-          }));
-        if (context.data.sanctum) {
-          let lab = context.data.world.labs.filter((c) => c.name == context.data.sanctum.value);
-          if (lab.length > 0) {
-            context.data.sanctum.linked = true;
-            context.data.sanctum.actorId = lab[0].id;
-          } else {
-            context.data.sanctum.linked = false;
+      let usercache = JSON.parse(sessionStorage.getItem(`usercache-${game.user.id}`));
+      if (usercache[this.actor.id]) {
+        context.userData = usercache[this.actor.id];
+      } else {
+        usercache[this.actor.id] = {
+          filters: {
+            hermetic: {
+              spells: HERMETIC_FILTER,
+              magicalEffects: HERMETIC_FILTER,
+              laboratoryTexts: HERMETIC_FILTER
+            },
+            abilities: {
+              category: ""
+            }
           }
-        }
-        for (let [key, technique] of Object.entries(context.data.arts.techniques)) {
-          if (!technique.bonus && technique.xpCoeff == 1.0) {
-            technique.ui = { shadow: "" };
-          } else if (!technique.bonus && technique.xpCoeff != 1.0) {
-            technique.ui = { shadow: "maroon", title: "Affinity, " };
-          } else if (technique.bonus && technique.xpCoeff == 1.0) {
-            technique.ui = { shadow: "blue", title: "" };
-          } else {
-            technique.ui = { shadow: "purple", title: "Affinity, " };
-          }
-        }
-        for (let [key, form] of Object.entries(context.data.arts.forms)) {
-          if (!form.bonus && form.xpCoeff == 1.0) {
-            form.ui = { shadow: "" };
-          } else if (!form.bonus && form.xpCoeff != 1.0) {
-            form.ui = { shadow: "maroon", title: "Affinity, " };
-          } else if (form.bonus && form.xpCoeff == 1.0) {
-            form.ui = { shadow: "blue", title: "" };
-          } else {
-            form.ui = { shadow: "purple", title: "Affinity, " };
-          }
-        }
+        };
+        context.userData = usercache[this.actor.id];
+        sessionStorage.setItem(`usercache-${game.user.id}`, JSON.stringify(usercache));
       }
 
+      context.data.world = {};
+
+      // check whether the character is linked to an existing covenant
       context.data.world.covenants = game.actors
         .filter((a) => a.type == "covenant")
         .map(({ name, id }) => ({
@@ -187,6 +188,191 @@ export class ArM5eActorSheet extends ActorSheet {
         } else {
           context.data.covenant.linked = false;
         }
+      }
+
+      if (context.data.charType.value == "magusNPC" || context.data.charType.value == "magus") {
+        // Arts icons style
+        context.artsIcons = game.settings.get("arm5e", "artsIcons");
+        context.data.world.labs = game.actors
+          .filter((a) => a.type == "laboratory")
+          .map(({ name, id }) => ({
+            name,
+            id
+          }));
+
+        // check whether the character is linked to an existing lab
+        if (context.data.sanctum) {
+          let lab = context.data.world.labs.filter((c) => c.name == context.data.sanctum.value);
+          if (lab.length > 0) {
+            context.data.sanctum.linked = true;
+            context.data.sanctum.actorId = lab[0].id;
+          } else {
+            context.data.sanctum.linked = false;
+          }
+        }
+
+        // lab total modifiers
+        if (context.data.labtotal === undefined) {
+          context.data.labtotal = {};
+        }
+        if (context.data.labtotal.modifier === undefined) {
+          context.data.labtotal.modifier = 0;
+        }
+        if (context.data.sanctum.linked) {
+          let lab = game.actors.get(context.data.sanctum.actorId);
+          if (lab) {
+            context.data.labtotal.quality = parseInt(lab.data.data.generalQuality.total);
+          }
+        } else {
+          if (context.data.labtotal.quality === undefined) {
+            context.data.labtotal.quality = 0;
+          }
+        }
+
+        if (context.data.covenant.linked) {
+          let cov = game.actors.get(context.data.covenant.actorId);
+          if (cov) {
+            if (cov.data.data.levelAura == "") {
+              context.data.labtotal.aura = 0;
+            } else {
+              context.data.labtotal.aura = cov.data.data.levelAura;
+            }
+          }
+        } else {
+          if (context.data.labtotal.aura === undefined) {
+            context.data.labtotal.aura = 0;
+          }
+        }
+
+        if (context.data.labtotal.applyFocus == undefined) {
+          context.data.labtotal.applyFocus = false;
+        }
+
+        // hermetic filters
+        // 1. Filter
+        // Spells
+        let spellsFilters = context.userData.filters.hermetic.spells;
+        context.ui = {};
+        context.data.spells = hermeticFilter(spellsFilters, context.data.spells);
+        if (spellsFilters.expanded) {
+          context.ui.spellsFilterVisibility = "";
+        } else {
+          context.ui.spellsFilterVisibility = "hidden";
+        }
+        if (
+          spellsFilters.formFilter != "" ||
+          spellsFilters.techniqueFilter != "" ||
+          (spellsFilters.levelFilter != 0 && spellsFilters.levelFilter != null)
+        ) {
+          context.ui.spellFilter = 'style="text-shadow: 0 0 5px maroon"';
+        }
+
+        // magical effects
+        let magicEffectFilters = context.userData.filters.hermetic.magicalEffects;
+        context.data.magicalEffects = hermeticFilter(
+          magicEffectFilters,
+          context.data.magicalEffects
+        );
+        if (magicEffectFilters.expanded) {
+          context.ui.magicEffectFilterVisibility = "";
+        } else {
+          context.ui.magicEffectFilterVisibility = "hidden";
+        }
+        if (
+          magicEffectFilters.formFilter != "" ||
+          magicEffectFilters.techniqueFilter != "" ||
+          (magicEffectFilters.levelFilter != 0 && magicEffectFilters.levelFilter != null)
+        ) {
+          context.ui.magicEffectFilter = 'style="text-shadow: 0 0 5px maroon"';
+        }
+        // 2. Sort
+        context.data.spells = context.data.spells.sort(compareSpellsData);
+        context.data.magicalEffects = context.data.magicalEffects.sort(compareMagicalEffectsData);
+
+        // magic arts
+        for (let [key, technique] of Object.entries(context.data.arts.techniques)) {
+          if (!technique.bonus && technique.xpCoeff == 1.0) {
+            technique.ui = { style: 'style="border: 0px; height: 40px;"' };
+          } else if (!technique.bonus && technique.xpCoeff != 1.0) {
+            technique.ui = {
+              style: 'style="border: 0px; height: 40px; box-shadow: 0 0 10px maroon"',
+              title: "Affinity, "
+            };
+          } else if (technique.bonus && technique.xpCoeff == 1.0) {
+            technique.ui = {
+              style: 'style="border: 0px; height: 40px; box-shadow: 0 0 10px blue"',
+              title: ""
+            };
+          } else {
+            technique.ui = {
+              style: 'style="border: 0px; height: 40px; box-shadow: 0 0 10px purple"',
+              title: "Affinity, "
+            };
+          }
+        }
+        context.data.labTotals = {};
+        for (let [key, form] of Object.entries(context.data.arts.forms)) {
+          if (!form.bonus && form.xpCoeff == 1.0) {
+            form.ui = { style: 'style="border: 0px; height: 40px;"' };
+          } else if (!form.bonus && form.xpCoeff != 1.0) {
+            form.ui = {
+              style: 'style="border: 0px; height: 40px; box-shadow: 0 0 10px maroon"',
+              title: "Affinity, "
+            };
+          } else if (form.bonus && form.xpCoeff == 1.0) {
+            form.ui = {
+              style: 'style="border: 0px; height: 40px; box-shadow: 0 0 10px blue"',
+              title: ""
+            };
+          } else {
+            form.ui = {
+              style: 'style="border: 0px; height: 40px; box-shadow: 0 0 10px purple"',
+              title: "Affinity, "
+            };
+          }
+          // compute lab totals:
+          context.data.labTotals[key] = {};
+          for (let [k2, technique] of Object.entries(context.data.arts.techniques)) {
+            let techScore = technique.finalScore;
+            let formScore = form.finalScore;
+            if (context.data.labtotal.applyFocus) {
+              if (techScore > formScore) {
+                formScore *= 2;
+              } else {
+                techScore *= 2;
+              }
+            }
+            context.data.labTotals[key][k2] =
+              formScore +
+              techScore +
+              context.data.laboratory.basicLabTotal.value +
+              parseInt(context.data.labtotal.quality) +
+              parseInt(context.data.labtotal.aura) +
+              parseInt(context.data.labtotal.modifier) +
+              context.data.bonuses.arts.laboratory;
+          }
+        }
+      }
+
+      for (let [key, ab] of Object.entries(context.data.abilities)) {
+        if (ab.data.derivedScore == ab.data.finalScore && ab.data.xpCoeff == 1.0) {
+          ab.ui = { style: "" };
+        } else if (ab.data.derivedScore == ab.data.finalScore && ab.data.xpCoeff != 1.0) {
+          ab.ui = { style: 'style="box-shadow: 0 0 10px maroon"', title: "Affinity, " };
+        } else if (ab.data.derivedScore != ab.data.finalScore && ab.data.xpCoeff == 1.0) {
+          ab.ui = { style: 'style="box-shadow: 0 0 10px blue"', title: "" };
+        } else {
+          ab.ui = { style: 'style="box-shadow: 0 0 10px purple"', title: "Affinity, " };
+        }
+      }
+
+      for (let [key, charac] of Object.entries(context.data.characteristics)) {
+        let shadowWidth = 2 * charac.aging;
+        charac.ui = {
+          style: 'style="box-shadow: 0 0 ' + shadowWidth + 'px black"',
+          title: `${charac.aging} ` + game.i18n.localize("arm5e.sheet.agingPts")
+        };
+        // log(false, `${key} has ${charac.aging} points`);
       }
     }
     context.isGM = game.user.isGM;
@@ -212,8 +398,37 @@ export class ArM5eActorSheet extends ActorSheet {
    *
    * @return {undefined}
    */
-  _prepareCharacterItems(sheetData) {
-    //let actorData = sheetData.actor.data;
+  _prepareCharacterItems(actorData) {
+    if (
+      actorData.actor.type == "player" ||
+      actorData.actor.type == "npc" ||
+      actorData.actor.type == "laboratory" ||
+      actorData.actor.type == "covenant"
+    ) {
+      for (let virtue of actorData.data.virtues) {
+        if (virtue.effects.size > 0) {
+          virtue.data.ui = { style: 'style="font-style:italic"' };
+        }
+      }
+
+      for (let flaw of actorData.data.flaws) {
+        if (flaw.effects.size > 0) {
+          flaw.data.ui = { style: 'style="font-style:italic"' };
+        }
+      }
+    }
+
+    if (actorData.actor.type == "player" || actorData.actor.type == "npc") {
+      for (let spell of actorData.data.spells) {
+        spell.TechReq = spellTechniqueLabel(spell);
+        spell.FormReq = spellFormLabel(spell);
+      }
+
+      for (let effect of actorData.data.magicalEffects) {
+        effect.TechReq = spellTechniqueLabel(effect);
+        effect.FormReq = spellFormLabel(effect);
+      }
+    }
   }
 
   /* -------------------------------------------- */
@@ -222,8 +437,63 @@ export class ArM5eActorSheet extends ActorSheet {
   activateListeners(html) {
     super.activateListeners(html);
 
+    // filters
+    html.find(".toggleHidden").click(async (ev) => {
+      const list = $(ev.target).data("list");
+      const val = html.find(`.${list}`).attr("class").indexOf("hidden");
+      await updateUserCache(this.actor.id, list, "expanded", val >= 0);
+      html.find(`.${list}`).toggleClass("hidden");
+    });
+
+    html.find(".technique-filter").change(async (ev) => {
+      ev.preventDefault();
+      const list = $(ev.currentTarget).data("list");
+      const val = ev.target.value;
+      await updateUserCache(this.actor.id, list, "techniqueFilter", val);
+      this.render();
+    });
+
+    html.find(".form-filter").change(async (ev) => {
+      ev.preventDefault();
+      const list = $(ev.currentTarget).data("list");
+      const val = ev.target.value;
+      await updateUserCache(this.actor.id, list, "formFilter", val);
+      this.render();
+    });
+
+    html.find(".levelOperator-filter").change(async (ev) => {
+      ev.preventDefault();
+      const list = $(ev.currentTarget).data("list");
+      const val = ev.target.value;
+      await updateUserCache(this.actor.id, list, "levelOperator", val);
+      this.render();
+    });
+
+    html.find(".level-filter").change(async (ev) => {
+      ev.preventDefault();
+      const list = $(ev.currentTarget).data("list");
+      const val = ev.target.value;
+      await updateUserCache(this.actor.id, list, "levelFilter", val);
+      this.actor.update();
+    });
+
+    html.find(".sortable").click((ev) => {
+      const listName = ev.currentTarget.dataset.list;
+      let val = this.actor.getFlag("arm5e", "sorting", listName);
+      if (val === undefined) {
+        this.actor.setFlag("arm5e", "sorting", {
+          [listName]: true
+        });
+      } else {
+        this.actor.setFlag("arm5e", "sorting", {
+          [listName]: !val[listName]
+        });
+      }
+    });
+
     // Everything below here is only needed if the sheet is editable
     if (!this.options.editable) return;
+
     // Render the linked actor sheet for viewing/editing prior to the editable check.
     html.find(".actor-link").click(this._onActorRender.bind(this));
 
@@ -290,36 +560,48 @@ export class ArM5eActorSheet extends ActorSheet {
       li.slideUp(200, () => this.render(false));
     });
 
+    html.find(".item-delete-confirm").click(async (event) => {
+      event.preventDefault();
+      const question = game.i18n.localize("arm5e.dialog.delete-question");
+      const li = $(event.currentTarget).parents(".item");
+      let itemId = li.data("itemId");
+      await Dialog.confirm({
+        title: `${li[0].dataset.name}`,
+        content: `<p>${question}</p>`,
+        yes: () => {
+          itemId = itemId instanceof Array ? itemId : [itemId];
+          this.actor.deleteEmbeddedDocuments("Item", itemId, {});
+          li.slideUp(200, () => this.render(false));
+        },
+        no: () => null,
+        rejectClose: true
+      });
+    });
+
     // Generate abilities automatically
     html.find(".abilities-generate").click(this._onGenerateAbilities.bind(this));
 
     html.find(".rest").click((ev) => {
-      if (this.actor.data.type === "player" || this.actor.data.type === "npc") {
+      if (
+        this.actor.data.type === "player" ||
+        this.actor.data.type === "npc" ||
+        this.actor.type == "beast"
+      ) {
         this.actor.rest();
-      }
-    });
-
-    html.find(".sortable").click((ev) => {
-      const listName = ev.currentTarget.dataset.list;
-      let val = this.actor.getFlag("arm5e", "sorting", listName);
-      if (val === undefined) {
-        this.actor.setFlag("arm5e", "sorting", {
-          [listName]: true
-        });
-      } else {
-        this.actor.setFlag("arm5e", "sorting", {
-          [listName]: !val[listName]
-        });
       }
     });
 
     // Rollable abilities.
     html.find(".rollable").click(this._onRoll.bind(this));
+    // html.find(".agingPoints").click(this._onRoll.bind(this));
 
     html.find(".pick-covenant").click(this._onPickCovenant.bind(this));
     html.find(".soak-damage").click(this._onSoakDamage.bind(this));
     html.find(".damage").click(this._onCalculateDamage.bind(this));
+    //html.find(".power-use").click(this._onUsePower.bind(this));
     html.find(".voice-and-gestures").change(this._onSelectVoiceAndGestures.bind(this));
+    html.find(".addFatigue").click((event) => this.actor._changeFatigueLevel(1));
+    html.find(".removeFatigue").click((event) => this.actor._changeFatigueLevel(-1));
 
     // Drag events for macros.
     if (this.actor.isOwner) {
@@ -331,7 +613,12 @@ export class ArM5eActorSheet extends ActorSheet {
     }
 
     // Active Effect management
-    html.find(".effect-control").click((ev) => ArM5eActiveEffect.onManageActiveEffect(ev, this.actor));
+    html
+      .find(".effect-control")
+      .click((ev) => ArM5eActiveEffect.onManageActiveEffect(ev, this.actor));
+
+    // migrate actor
+    html.find(".migrate").click((event) => this.actor.migrate());
   }
 
   async _increaseArt(type, art) {
@@ -353,7 +640,8 @@ export class ArM5eActorSheet extends ActorSheet {
     if (this.actor.data.data.arts[type][art].derivedScore != 0) {
       let oldXp = this.actor.data.data.arts[type][art].xp;
       let newXp = Math.round(
-        ((this.actor.data.data.arts[type][art].derivedScore - 1) * this.actor.data.data.arts[type][art].derivedScore) /
+        ((this.actor.data.data.arts[type][art].derivedScore - 1) *
+          this.actor.data.data.arts[type][art].derivedScore) /
           (2 * this.actor.data.data.arts[type][art].xpCoeff)
       );
       let updateData = {};
@@ -410,7 +698,6 @@ export class ArM5eActorSheet extends ActorSheet {
   async _onPickCovenant(event) {
     event.preventDefault();
     const element = event.currentTarget;
-    log("false", this.actor.data);
     var actor = this.actor;
     let template = "systems/arm5e/templates/generic/simpleListPicker.html";
     renderTemplate(template, this.actor).then(function (html) {
@@ -448,8 +735,6 @@ export class ArM5eActorSheet extends ActorSheet {
       modifier: 0
     };
 
-    const element = event.currentTarget;
-    log("false", this.actor.data);
     var actor = this.actor;
 
     const data = {
@@ -478,6 +763,7 @@ export class ArM5eActorSheet extends ActorSheet {
         {
           jQuery: true,
           height: "140px",
+          width: "400px",
           classes: ["arm5e-dialog", "dialog"]
         }
       ).render(true);
@@ -490,8 +776,56 @@ export class ArM5eActorSheet extends ActorSheet {
     await modifyVoiceOrGesturesActiveEvent(this, name, $(event.target).val());
   }
 
-  async _onCalculateDamage(html, actor) {
+  async _onUsePower(event) {
     event.preventDefault();
+    const dataset = getDataset(event);
+
+    if (Number(dataset.cost > this.actor.data.data.might.value)) {
+      ui.notifications.warn(game.i18n.localize("arm5e.notification.noMightPoints"));
+      return;
+    }
+
+    const data = {
+      penetration: this.actor.getAbilityStats("penetration"),
+      cost: Number(dataset.cost) * 5,
+      might: Number(this.actor.data.data.might.value),
+      aura: Number(this.actor.getActiveEffectValue("spellcasting", "aura")),
+      form: dataset.form,
+      name: dataset.name,
+      modifier: 0
+    };
+    data.penetration.specApply = false;
+    data.total = data.penetration.score - data.cost + data.might + data.aura;
+    let template = "systems/arm5e/templates/actor/parts/actor-powerUse.html";
+    renderTemplate(template, data).then(function (html) {
+      new Dialog(
+        {
+          title: game.i18n.localize("arm5e.dialog.powerUse"),
+          content: html,
+          buttons: {
+            yes: {
+              icon: "<i class='fas fa-check'></i>",
+              label: `Yes`,
+              callback: null //(html) => calculateDamage(html, actor)
+            },
+            no: {
+              icon: "<i class='fas fa-ban'></i>",
+              label: `Cancel`,
+              callback: null
+            }
+          }
+        },
+        {
+          jQuery: true,
+          height: "140px",
+          width: "400px",
+          classes: ["arm5e-dialog", "dialog"]
+        }
+      ).render(true);
+    });
+  }
+
+  async _onCalculateDamage(html, actor) {
     const lastAttackMessage = getLastMessageByHeader(game, "arm5e.sheet.attack");
     const lastDefenseMessage = getLastMessageByHeader(game, "arm5e.sheet.defense");
     const attack = parseInt(lastAttackMessage?.data?.content || "0");
@@ -503,8 +837,6 @@ export class ArM5eActorSheet extends ActorSheet {
       modifier: 0
     };
 
-    const element = event.currentTarget;
-    log("false", this.actor.data);
     var actor = this.actor;
 
     const data = {
@@ -533,6 +865,7 @@ export class ArM5eActorSheet extends ActorSheet {
         {
           jQuery: true,
           height: "140px",
+          width: "400px",
           classes: ["arm5e-dialog", "dialog"]
         }
       ).render(true);
@@ -562,7 +895,9 @@ export class ArM5eActorSheet extends ActorSheet {
           );
           if (abs.length == 0) {
             // Then, check if the Abilities compendium exists
-            let abPack = game.packs.filter((p) => p.metadata.package === "arm5e" && p.metadata.name === "abilities");
+            let abPack = game.packs.filter(
+              (p) => p.metadata.package === "arm5e" && p.metadata.name === "abilities"
+            );
             const documents = await abPack[0].getDocuments();
             for (let doc of documents) {
               if (doc.name === localizedA || doc.name === localizedA + "*") {
@@ -599,8 +934,16 @@ export class ArM5eActorSheet extends ActorSheet {
       });
       return;
     }
-    if (dataset.roll != "char") {
-      if (this.actor.data.data.fatigue.unconscious.level.value == true) {
+    if ((getRollTypeProperties(dataset.roll).MODE & ROLL_MODES.UNCONSCIOUS) == 0) {
+      // if (dataset.roll != "char" && dataset.roll != "aging" && dataset.roll != "crisis") {
+      if (this.actor.data.data.pendingCrisis) {
+        ui.notifications.info(game.i18n.localize("arm5e.notification.pendingCrisis"), {
+          permanent: true
+        });
+        return;
+      }
+
+      if (this.actor.data.data.fatigueCurrent == this.actor.data.data.fatigueMaxLevel) {
         ui.notifications.info(game.i18n.localize("arm5e.notification.unconscious"), {
           permanent: true
         });
@@ -608,7 +951,7 @@ export class ArM5eActorSheet extends ActorSheet {
       }
     }
 
-    prepareRollVariables(dataset, this.actor.data, this.actor.effects);
+    prepareRollVariables(dataset, this.actor);
     prepareRollFields(dataset, this.actor.data);
     cleanBooleans(dataset, this.actor.data);
 
@@ -631,7 +974,7 @@ export class ArM5eActorSheet extends ActorSheet {
    */
   async _onDropItemCreate(itemData) {
     itemData = itemData instanceof Array ? itemData : [itemData];
-    let filtered = itemData.filter((e) => this.isItemDropAllowed(e.type));
+    let filtered = itemData.filter((e) => this.isItemDropAllowed(e));
     for (let item of filtered) {
       // log(false, "Before reset " + JSON.stringify(item.data));
       item = resetOwnerFields(item);
@@ -685,14 +1028,14 @@ export async function setCovenant(selector, actor) {
 }
 
 export async function setWounds(selector, actor) {
-  const damageToApply = parseInt(selector.find('input[name$="damage"]').val());
+  const damage = parseInt(selector.find('input[name$="damage"]').val());
   const modifier = parseInt(selector.find('input[name$="modifier"]').val());
   const prot = parseInt(selector.find('label[name$="prot"]').attr("value") || 0);
   const bonus = parseInt(selector.find('label[name$="soak"]').attr("value") || 0);
   const stamina = parseInt(selector.find('label[name$="stamina"]').attr("value") || 0);
-  const damage = damageToApply - modifier - prot - stamina - bonus;
+  const damageToApply = damage - modifier - prot - stamina - bonus;
   const size = actor?.data?.data?.vitals?.siz?.value || 0;
-  const typeOfWound = calculateWound(damage, size);
+  const typeOfWound = calculateWound(damageToApply, size);
   if (typeOfWound === false) {
     ui.notifications.info(game.i18n.localize("arm5e.notification.notPossibleToCalculateWound"), {
       permanent: true
@@ -712,15 +1055,18 @@ export async function setWounds(selector, actor) {
   if (modifier) {
     messageModifier = `${game.i18n.localize("arm5e.sheet.modifier")} (${modifier})<br/>`;
   }
+
+  const messageTotal = `${game.i18n.localize("arm5e.sheet.totalDamage")} = ${damageToApply}`;
   const messageWound = typeOfWound
-    ? game.i18n
-        .localize("arm5e.messages.woundResult")
-        .replace("$typeWound$", game.i18n.localize("arm5e.messages.wound." + typeOfWound.toLowerCase()))
+    ? game.i18n.format("arm5e.messages.woundResult", {
+        typeWound: game.i18n.localize("arm5e.messages.wound." + typeOfWound.toLowerCase())
+      })
     : game.i18n.localize("arm5e.messages.noWound");
 
+  const details = ` ${messageDamage}<br/> ${messageStamina}<br/> ${messageProt}<br/> ${messageBonus}${messageModifier}<b>${messageTotal}</b>`;
   ChatMessage.create({
     content: `<h4 class="dice-total">${messageWound}</h4>`,
-    flavor: `${title} ${messageDamage}<br/> ${messageStamina}<br/> ${messageProt}<br/> ${messageBonus}${messageModifier}`,
+    flavor: title + putInFoldableLink("arm5e.sheet.label.details", details),
     speaker: ChatMessage.getSpeaker({
       actor
     })
@@ -749,15 +1095,17 @@ export async function calculateDamage(selector, actor) {
   const advantage = parseInt(selector.find('input[name$="advantage"]').val());
   const modifier = parseInt(selector.find('input[name$="modifier"]').val());
   const damage = strenght + weapon + advantage + modifier;
-  const title = '<h2 class="ars-chat-title">' + game.i18n.localize("arm5e.sheet.damage") + "</h2>";
+  const title = '<h2 class="ars-chat-title">' + game.i18n.localize("arm5e.sheet.damage") + " </h2>";
   const messageStrenght = `${game.i18n.localize("arm5e.sheet.strength")} (${strenght})`;
   const messageWeapon = `${game.i18n.localize("arm5e.sheet.damage")} (${weapon})`;
   const messageAdvantage = `${game.i18n.localize("arm5e.sheet.advantage")} (${advantage})`;
   const messageModifier = `${game.i18n.localize("arm5e.sheet.modifier")} (${modifier})`;
+
+  const details = ` ${messageStrenght}<br/> ${messageWeapon}<br/> ${messageAdvantage}<br/> ${messageModifier}<br/>`;
   const messageDamage = `<h4 class="dice-total">${damage}</h4>`;
   ChatMessage.create({
     content: messageDamage,
-    flavor: `${title} ${messageStrenght}<br/> ${messageWeapon}<br/> ${messageAdvantage}<br/> ${messageModifier}<br/>`,
+    flavor: title + putInFoldableLink("arm5e.sheet.label.details", details),
     speaker: ChatMessage.getSpeaker({
       actor
     })

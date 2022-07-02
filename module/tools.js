@@ -1,4 +1,4 @@
-import { ARM5E } from "./metadata.js";
+import { ARM5E } from "./config.js";
 
 import { DEFAULT_WOUND, SIZES_AND_WOUNDS } from "./constants/wounds.js";
 
@@ -24,6 +24,13 @@ export function error(force, ...args) {
   } catch (e) {
     console.error(e);
   }
+}
+
+export async function getDocumentFromCompendium(pack, id) {
+  let compendium = game.packs.get(pack);
+  // const documents = await compendium.getDocuments();
+  let doc = compendium.getDocument(id);
+  return doc;
 }
 
 export function compareBaseEffects(e1, e2) {
@@ -103,6 +110,30 @@ export function compareLabTexts(e1, e2) {
   return compareLabTextsData(e1.data, e2.data);
 }
 
+export function hermeticFilter(filters, inputArray) {
+  if (filters.formFilter != "") {
+    inputArray = inputArray.filter((e) => e.data.form.value === filters.formFilter);
+  }
+  if (filters.techniqueFilter != "") {
+    inputArray = inputArray.filter((e) => e.data.technique.value === filters.techniqueFilter);
+  }
+  if (
+    filters.levelFilter != 0 &&
+    filters.levelFilter != null &&
+    filters.levelFilter != "" &&
+    filters.levelFilter != "0"
+  ) {
+    if (filters.levelOperator == 0) {
+      inputArray = inputArray.filter((e) => e.data.level === parseInt(filters.levelFilter));
+    } else if (filters.levelOperator == -1) {
+      inputArray = inputArray.filter((e) => e.data.level <= parseInt(filters.levelFilter));
+    } else {
+      inputArray = inputArray.filter((e) => e.data.level >= parseInt(filters.levelFilter));
+    }
+  }
+  return inputArray;
+}
+
 export function compareLabTextsData(e1, e2) {
   if (e1.data.type < e2.data.type) {
     return -1;
@@ -136,7 +167,7 @@ export function getLabUpkeepCost(upkeep) {
 }
 
 export function getLastMessageByHeader(game, key) {
-  const searchString = game.i18n.localize(key).toLowerCase() + "</h2>";
+  const searchString = game.i18n.localize(key).toLowerCase() + " </h2>";
   const messages = game.messages.filter((msg) => {
     const flavor = (msg?.data?.flavor || "").toLowerCase();
     return flavor.indexOf(searchString) > -1;
@@ -381,13 +412,20 @@ export function generateActiveEffectFromAbilities() {
   debugger;
 }
 
-// wounds: {
-// category: "traits",
-// type: "wounds",
-// label: "arm5e.sheet.activeEffect.types.wounds",
-// subtypes: {
-//     light: {
-//       label: "arm5e.sheet.light",
-//       key: "data.wounds.light.penalty.value",
-//       mode: CONST.ACTIVE_EFFECT_MODES.ADD
-//     },
+export function getSystemCompendium(compendiumName) {
+  let pack = game.packs.filter(
+    (p) => p.metadata.package === "arm5e" && p.metadata.name === compendiumName
+  );
+  if (pack.length) return pack[0];
+  return undefined;
+}
+
+export function putInFoldableLink(label, content, startHidden = true) {
+  let hidden = "";
+  if (startHidden) {
+    hidden = "hidden";
+  }
+  return `<div class="arm5e clickable toggleHidden"><p style="text-align:center">${game.i18n.localize(
+    label
+  )}</p></div><div class="${hidden} details">${content}</div>`;
+}

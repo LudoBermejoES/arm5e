@@ -14,23 +14,31 @@ Official Foundry VTT System Listing: https://foundryvtt.com/packages/arm5e/
 
 Thanks to various contributors at https://game-icons.net for some default icons
 
+![Latest Release Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/latest/arm5e.zip)
+
+![Release 1.4.3 Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/v1.4.3/arm5e.zip)
+
+![Release 1.4.2 Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/v1.4.2/arm5e.zip)
+
+![Release 1.4.1 Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/v1.4.1/arm5e.zip)
+
+![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fraw.githubusercontent.com%2FXzotl42%2Farm5e%2Fmaster%2Fsystem.json&label=Foundry%20Version&query=$.compatibleCoreVersion&colorB=orange)
+
 ## Versión Española
 
 La utilización e inclusión del logo, iconos y elementos artísticos, así como el uso de terminología, ha sido autorizado expresamente y por escrito por Holocubierta Ediciones, S.L. (https://www.holocubierta.com), licenciataria del juego Ars Magica 5ª Edición para su publicación en castellano.
 
-## Installation
+## Installation of the development version
 
-IMPORTANT: It is recommended to do a backup of your world before updating.
+If you want to test the newest features in advance before release and give precious feedback and suggestions:
 
 Copy the following url in the Foundry dialog to install new systems (at the bottom, there is a text field) an click install
 
-https://github.com/Xzotl42/arm5e/releases/latest/download/system.json
-
-### The development version
-
-If you want to test the newest features in advance before release and give precious feedback and suggestions, you can do the same with the one below:
-
 https://raw.githubusercontent.com/xzotl42/arm5e/master/system.json
+
+IMPORTANT: It is recommended to do a backup of your world before updating.
+
+ALSO IMPORTANT: The dev system and the official releases can not exist in parallel in the same Foundry data folder. To have both versions, you can follow this [tutorial video](https://youtu.be/B74ZAp3xx3o) by Encounter library: a very clear process on how to do it step by step. (Instead of installing the V10 as in the video, install the latest stable V9, then install the dev version as explained below)
 
 ## Release Notes
 

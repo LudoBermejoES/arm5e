@@ -93,9 +93,12 @@ export async function migration(originalVersion) {
 
   // Set the migration as complete
   game.settings.set("arm5e", "systemMigrationVersion", game.system.data.version);
-  ui.notifications.info(`Ars Magica 5e System Migration to version ${game.system.data.version} completed!`, {
-    permanent: true
-  });
+  ui.notifications.info(
+    `Ars Magica 5e System Migration to version ${game.system.data.version} completed!`,
+    {
+      permanent: true
+    }
+  );
 }
 
 /**
@@ -159,6 +162,14 @@ export const migrateCompendium = async function (pack) {
  * @returns {object}                The updateData to apply
  */
 export const migrateSceneData = function (scene, migrationData) {
+  if (scene?.flags?.world) {
+    const aura = scene.flags.world[`aura_${scene.data._id}`];
+    const type = scene.flags.world[`aura_type_${scene.data._id}`];
+    if (aura && !type) {
+      log(false, "Missing aura type");
+    }
+  }
+
   const tokens = scene.tokens.map((token) => {
     const t = token.toObject();
     const update = {};
@@ -178,6 +189,7 @@ export const migrateSceneData = function (scene, migrationData) {
       // else {
       //   actorData.data = { charType: { value: token.actor?.data?.data?.charType?.value } };
       // }
+
       const update = migrateActorData(actorData, migrationData);
       ["items", "effects"].forEach((embeddedName) => {
         if (!update[embeddedName]?.length) return;
@@ -206,15 +218,36 @@ export const migrateSceneData = function (scene, migrationData) {
  * @param {object} actor    The actor data object to update
  * @return {Object}         The updateData to apply
  */
-
 export const migrateActorData = function (actorData) {
   const updateData = {};
-
-  //
+  // updateData["flags.arm5e.-=filters"] = null;
+  if (!actorData?.flags.arm5e) {
+    updateData["flags.arm5e"] = {};
+  } else if (actorData?.flags.arm5e.filters) {
+    updateData["flags.arm5e.-filters"] = null;
+  }
   if (actorData.type == "laboratory") {
     // fix recursive problem with laboratory owner
     if (!(actorData.data.owner.value instanceof String)) {
-      updateData["data.owner"] = "";
+      updateData["data.owner.value"] = "";
+    }
+
+    // Update data to official names
+    if (actorData.data.salubrity) {
+      updateData["data.health"] = actorData.data.salubrity;
+      updateData["data.-=salubrity"] = null;
+    }
+    if (actorData.data.improvement) {
+      updateData["data.refinement"] = actorData.data.improvement;
+      updateData["data.-=improvement"] = null;
+    }
+    if (actorData.data.security) {
+      updateData["data.safety"] = actorData.data.security;
+      updateData["data.-=security"] = null;
+    }
+    if (actorData.data.maintenance) {
+      updateData["data.upkeep"] = actorData.data.maintenance;
+      updateData["data.-=maintenance"] = null;
     }
 
     return updateData;
@@ -285,7 +318,7 @@ export const migrateActorData = function (actorData) {
   //   updateData["data.spells"] = [];
   // }
 
-  if (actorData.type == "player" || actorData.type == "npc") {
+  if (actorData.type == "player" || actorData.type == "npc" || actorData.type == "beast") {
     if (actorData.data?.roll != undefined) {
       updateData["data.roll.characteristic"] = "";
       updateData["data.roll.ability"] = "";
@@ -296,6 +329,10 @@ export const migrateActorData = function (actorData) {
       updateData["data.roll.rollLabel"] = "";
       updateData["data.roll.rollFormula"] = "";
     }
+    if (actorData.data.decrepitude == undefined) {
+      actorData.data.decrepitude = {};
+    }
+
     // remove garbage stuff if it exists
 
     updateData["data.-=str"] = null;
@@ -311,7 +348,42 @@ export const migrateActorData = function (actorData) {
   }
 
   if (actorData.type == "player" || actorData.type == "npc") {
+    if (actorData.data.charType.value !== "entity") {
+      if (actorData.data.decrepitude.score != undefined) {
+        let exp =
+          (actorData.data.decrepitude.score * (actorData.data.decrepitude.score + 1) * 5) / 2;
+        if (actorData.data.decrepitude.points >= 5 * (actorData.data.decrepitude.score + 1)) {
+          // if the experience is bigger than the needed for next level, ignore it
+          updateData["data.decrepitude.points"] = exp;
+        } else {
+          // compute normally
+          updateData["data.decrepitude.points"] = exp + actorData.data.decrepitude.points;
+        }
+        updateData["data.decrepitude.-=score"] = null;
+      }
+    } else {
+      // entity
+      // migrate might type to realm Alignment
+      if (actorData.data?.might?.realm != undefined) {
+        updateData["data.realmAlignment"] =
+          CONFIG.ARM5E.realmsExt[actorData.data.might.realm].value;
+        updateData["data.might.-=realm"] = null;
+        updateData["data.might.-=type"] = null;
+      } else if (actorData.data?.might?.type != undefined) {
+        updateData["data.realmAlignment"] = CONFIG.ARM5E.realmsExt[actorData.data.might.type].value;
+        updateData["data.might.-=realm"] = null;
+        updateData["data.might.-=type"] = null;
+      }
+    }
+
+    // if (actorData.data.realmAlignment && typeof actorData.data.realmAlignment === "string") {
+    if (actorData.data.realmAlignment && isNaN(actorData.data.realmAlignment)) {
+      updateData["data.realmAlignment"] =
+        CONFIG.ARM5E.realmsExt[actorData.data.realmAlignment].value;
+    }
+
     if (actorData.data.charType.value == "magus" || actorData.data.charType.value == "magusNPC") {
+      updateData["data.realmAlignment"] = CONFIG.ARM5E.realmsExt.magic.value;
       if (actorData.data?.sanctum?.value === undefined) {
         let sanctum = {
           value: actorData.data.sanctum
@@ -319,11 +391,11 @@ export const migrateActorData = function (actorData) {
         updateData["data.sanctum"] = sanctum;
       }
 
-      if (actorData.data?.laboratory != undefined) {
-        updateData["data.laboratory.longevityRitual.labTotal"] = 0;
-        updateData["data.laboratory.longevityRitual.modifier"] = 0;
-        updateData["data.laboratory.longevityRitual.twilightScars"] = "";
-      }
+      // if (actorData.data?.laboratory != undefined) {
+      //   updateData["data.laboratory.longevityRitual.labTotal"] = 0;
+      //   updateData["data.laboratory.longevityRitual.modifier"] = 0;
+      //   updateData["data.laboratory.longevityRitual.twilightScars"] = "";
+      // }
 
       if (actorData.data?.familiar?.characteristicsFam != undefined) {
         updateData["data.familiar.characteristicsFam.int"] = {
@@ -401,7 +473,7 @@ export const migrateActorData = function (actorData) {
     }
   }
 
-  if (actorData.type == "player" || actorData.type == "npc") {
+  if (actorData.type == "player" || actorData.type == "npc" || actorData.type == "beast") {
     if (actorData.effects && actorData.effects.length > 0) {
       log(false, `Migrating effects of ${actorData.name}`);
       const effects = actorData.effects.reduce((arr, e) => {
@@ -420,11 +492,21 @@ export const migrateActorData = function (actorData) {
         updateData.effects = effects;
       }
     }
+    let currentFatigue = 0;
+    if (actorData.data.fatigue) {
+      for (const [key, fat] of Object.entries(actorData.data.fatigue)) {
+        if (fat.level != undefined) {
+          if (fat.level.value) {
+            currentFatigue++;
+          }
+          updateData[`data.fatigue.${key}.-=level`] = null;
+        }
+      }
+      if (currentFatigue > 0 && actorData.data.fatigueCurrent == 0) {
+        updateData["data.fatigueCurrent"] = currentFatigue;
+      }
+    }
   }
-  // else {
-  //   log(false, `Removing all effects of ${actorData.name}`);
-  //   updateData.effects = [];
-  // }
 
   // Migrate Owned Items
   if (!actorData.items) return updateData;
@@ -465,8 +547,28 @@ export const migrateActiveEffectData = function (effectData) {
   }
 
   // Fix mess active effect V1
-  if (effectData.flags?.arm5e.type != undefined && !(effectData.flags.arm5e.type instanceof Array)) {
-    effectUpdate["flags.arm5e.type"] = [effectData.flags.arm5e.type];
+  if (effectData.flags?.arm5e.type != undefined) {
+    if (!(effectData.flags.arm5e.type instanceof Array)) {
+      if (effectData.flags.arm5e.type === "spellCasting") {
+        effectData.flags.arm5e.type = "spellcasting";
+      }
+      effectUpdate["flags.arm5e.type"] = [effectData.flags.arm5e.type];
+    } else {
+      let idx = 0;
+      for (const name of effectData.flags.arm5e.type.values()) {
+        if (name === "spellCasting") {
+          effectUpdate["flags.arm5e.type." + idx] = "spellcasting";
+        }
+        idx++;
+      }
+    }
+  }
+
+  if (
+    effectData.flags?.arm5e.subtype != undefined &&
+    !(effectData.flags.arm5e.subtype instanceof Array)
+  ) {
+    effectUpdate["flags.arm5e.subtype"] = [effectData.flags.arm5e.subtype];
   }
 
   if (effectData.flags?.arm5e?.option == undefined) {
@@ -501,11 +603,10 @@ export const migrateItemData = function (itemData) {
       // updateData["data.-=experience"] = null;
       // updateData["data.-=score"] = null;
       updateData["data.-=experienceNextLevel"] = null;
-
-      // clean-up TODO: remove
-      update["data.-=puissant"] = null;
-      update["data.-=affinity"] = null;
     }
+    // clean-up TODO: remove
+    updateData["data.-=puissant"] = null;
+    updateData["data.-=affinity"] = null;
 
     // no key assigned to the ability, try to find one
     if (CONFIG.ARM5E.ALL_ABILITIES[itemData.data.key] == undefined || itemData.data.key == "") {
@@ -587,14 +688,20 @@ export const migrateItemData = function (itemData) {
       updateData["data.-=form-requisites"] = null;
     }
     if (itemData.data["technique-requisite"] != undefined) {
-      if (itemData.data["technique-requisite"].value != "n-a" && itemData.data["technique-requisite"].value != "") {
+      if (
+        itemData.data["technique-requisite"].value != "n-a" &&
+        itemData.data["technique-requisite"].value != ""
+      ) {
         updateData["data.technique-req." + itemData.data["technique-requisite"].value] = true;
       }
       updateData["data.-=technique-requisite"] = null;
     }
 
     if (itemData.data["form-requisite"] != undefined) {
-      if (itemData.data["form-requisite"].value != "n-a" && itemData.data["form-requisite"].value != "") {
+      if (
+        itemData.data["form-requisite"].value != "n-a" &&
+        itemData.data["form-requisite"].value != ""
+      ) {
         updateData["data.form-req." + itemData.data["form-requisite"].value] = true;
       }
       updateData["data.-=form-requisite"] = null;
@@ -606,18 +713,36 @@ export const migrateItemData = function (itemData) {
       updateData["data.-=year"] = null;
       updateData["data.-=season"] = null;
       updateData["data.-=language"] = null;
-    }
-    // Fix type of Item
-    if (itemData.type == "dairyEntry") {
-      updateData["type"] = "diaryEntry";
-    }
-    if (itemData.type == "might") {
-      updateData["type"] = "power";
-    }
-    if (itemData.type == "mightFamiliar") {
-      updateData["type"] = "powerFamiliar";
+
+      if (itemData.data.exp) {
+        let exp = ((itemData.data.mastery * (itemData.data.mastery + 1)) / 2) * 5;
+        if (itemData.data.exp >= exp) {
+          updateData["data.xp"] = itemData.data.exp;
+        } else if (itemData.data.exp >= (itemData.data.mastery + 1) * 5) {
+          // if the experience is bigger than the neeeded for next level, ignore it
+          updateData["data.xp"] = exp;
+        } else {
+          // compute normally
+          updateData["data.xp"] = exp + itemData.data.exp;
+        }
+        // TODO: to be uncommentedm when we are sure the new system works
+        // updateData["data.-=mastery"] = null;
+        updateData["data.-=exp"] = null;
+      }
     }
   }
+  // Fix type of Item
+  if (itemData.type == "dairyEntry") {
+    updateData["type"] = "diaryEntry";
+  }
+
+  if (itemData.type == "might") {
+    updateData["type"] = "power";
+  }
+  if (itemData.type == "mightFamiliar") {
+    updateData["type"] = "powerFamiliar";
+  }
+
   if (itemData.effects.length > 0) {
     log(false, `Migrating effects of ${itemData.name}`);
     const effects = itemData.effects.reduce((arr, e) => {

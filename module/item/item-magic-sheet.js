@@ -9,8 +9,8 @@ export class ArM5eItemMagicSheet extends ArM5eItemSheet {
   static get defaultOptions() {
     return mergeObject(super.defaultOptions, {
       classes: ["arm5e", "sheet", "item"],
-      width: 650,
-      height: 650,
+      width: 654,
+      height: 800,
       tabs: [
         {
           navSelector: ".sheet-tabs",
@@ -70,12 +70,13 @@ export class ArM5eItemMagicSheet extends ArM5eItemSheet {
 
   async _pickRequisites(event) {
     event.preventDefault();
-    this.item.data.metadata = {
+    this.item.data.config = {
       magic: {
         techniques: CONFIG.ARM5E.magic.techniques,
         forms: CONFIG.ARM5E.magic.forms
       }
     };
+    this.item.data.ui = { flavor: event.currentTarget.dataset.flavor };
     log("false", this.item.data);
     var itemData = this.item;
     let template = "systems/arm5e/templates/item/parts/requisites.html";

@@ -1,3 +1,4 @@
+// Rule: all subtypes of a given type must have a different "key" value or it becomes impossible to edit them properly
 export default {
   none: {
     category: "magic",
@@ -18,12 +19,18 @@ export default {
     subtypes: {
       voice: {
         label: "arm5e.sheet.magic.voice",
-        key: "data.bonuses.arts.spellcasting",
+        key: "data.bonuses.arts.voice",
         mode: CONST.ACTIVE_EFFECT_MODES.ADD,
         default: 0
       },
       gestures: {
         label: "arm5e.sheet.magic.gestures",
+        key: "data.bonuses.arts.spellcasting",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 0
+      },
+      aura: {
+        label: "arm5e.sheet.magic.aura",
         key: "data.bonuses.arts.spellcasting",
         mode: CONST.ACTIVE_EFFECT_MODES.ADD,
         default: 0
@@ -40,6 +47,25 @@ export default {
         key: "data.bonuses.arts.penetration",
         mode: CONST.ACTIVE_EFFECT_MODES.ADD,
         default: 0
+      }
+    }
+  },
+  realm: {
+    category: "magic",
+    type: "realm",
+    label: "arm5e.sheet.activeEffect.types.realmAlignment",
+    subtypes: {
+      magic: {
+        label: "arm5e.sheet.realm.label",
+        key: "data.realmAlignment",
+        mode: CONST.ACTIVE_EFFECT_MODES.OVERRIDE,
+        default: 1,
+        choice: {
+          1: "arm5e.sheet.realm.magical",
+          2: "arm5e.sheet.realm.faeric",
+          3: "arm5e.sheet.realm.divine",
+          4: "arm5e.sheet.realm.infernal"
+        }
       }
     }
   },
@@ -160,6 +186,12 @@ export default {
         key: "data.bonuses.traits.soak",
         mode: CONST.ACTIVE_EFFECT_MODES.ADD,
         default: 3
+      },
+      aging: {
+        label: "arm5e.sheet.aging",
+        key: "data.bonuses.traits.aging",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 0
       }
     }
   },
@@ -223,6 +255,12 @@ export default {
     type: "fatigue",
     label: "arm5e.sheet.activeEffect.types.fatigue",
     subtypes: {
+      winded: {
+        label: "arm5e.sheet.winded",
+        key: "data.fatigue.winded.number",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 0
+      },
       weary: {
         label: "arm5e.sheet.weary",
         key: "data.fatigue.weary.number",
@@ -238,6 +276,30 @@ export default {
       dazed: {
         label: "arm5e.sheet.dazed",
         key: "data.fatigue.dazed.number",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 0
+      },
+      windedLevel: {
+        label: "arm5e.sheet.windedLvl",
+        key: "data.fatigue.winded.amount",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 0
+      },
+      wearyLevel: {
+        label: "arm5e.sheet.wearyLvl",
+        key: "data.fatigue.weary.amount",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 0
+      },
+      tiredLevel: {
+        label: "arm5e.sheet.tiredLvl",
+        key: "data.fatigue.tired.amount",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 0
+      },
+      dazedLevel: {
+        label: "arm5e.sheet.dazedLvl",
+        key: "data.fatigue.dazed.amount",
         mode: CONST.ACTIVE_EFFECT_MODES.ADD,
         default: 0
       }
@@ -1109,6 +1171,62 @@ export default {
         key: "data.bonuses.skills.wildernessSense.xpCoeff",
         mode: 1,
         default: 1.5
+      }
+    }
+  },
+
+  laboratory: {
+    category: "laboratory",
+    type: "laboratory",
+    label: "arm5e.sheet.activeEffect.types.laboratory",
+    subtypes: {
+      size: {
+        label: "arm5e.sheet.size",
+        key: "data.size.bonus",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 1
+      },
+      generalQuality: {
+        label: "arm5e.sheet.generalQuality",
+        key: "data.generalQuality.bonus",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 1
+      },
+      safety: {
+        label: "arm5e.sheet.safety",
+        key: "data.safety.bonus",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 1
+      },
+      health: {
+        label: "arm5e.sheet.health",
+        key: "data.health.bonus",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 1
+      },
+      refinement: {
+        label: "arm5e.sheet.refinement",
+        key: "data.refinement.bonus",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 1
+      },
+      upkeep: {
+        label: "arm5e.sheet.upkeep",
+        key: "data.upkeep.bonus",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 1
+      },
+      warping: {
+        label: "arm5e.sheet.warping",
+        key: "data.warping.bonus",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 1
+      },
+      aesthetics: {
+        label: "arm5e.sheet.aesthetics",
+        key: "data.aesthetics.bonus",
+        mode: CONST.ACTIVE_EFFECT_MODES.ADD,
+        default: 1
       }
     }
   }

@@ -1,4 +1,126 @@
-## Release Notes
+# Release Notes
+
+## 1.4.4
+
+### Features
+
+- Limited character sheet
+- Requisites are displayed in spell/magical effects lists
+- Realm aligned auras
+- Spell will fail if your casting total is too low
+- Fatigue levels will be lost if casting total is too low (rituals too)
+- Aura impacts magic resistance of creatures with might
+- Dropping an ability on an actor will open its sheet
+- Dropping an already known ability on a character will raise a warning
+- Redesign of NPC-entity sheet
+- Added might pool in the datamodel.
+- Some cosmetic improvements suggested by Sylph
+- Players will only see the details of their own rolls
+- Most roll chat messages are now in a foldable "details" link
+- More compact footers for actor sheets (by Sylph)
+- Penetration computation of spells and magical effects
+- Magic effect casting will fail if the level is not reached
+- Update of Spanish translation (by Teotimus)
+- Aura now impact unlinked tokens
+- Aura of a scene is applied to token on scene activation or if scene is active
+
+### Bug fixes
+
+- Fixed wrong label in defense roll
+- Changed misleading die icon of damage and soak actions into proper ones
+- Fixed broken foldable active effects bonuses
+- Extended lower limit of aging roll tables to negative values
+- Only spells strictly greater than level 50 become rituals (instead of greater or equal)
+- Fixed the combat automation
+- Fixed error message when changing aura value.
+- Tech debt: Cleaned up the Contest of magic feature code using ability key
+- Combat automation was not working with weapons in the macro bar (defaults to attack now)
+- Clarified Soak chat message details.
+- Linked actors which are dropped in multiple scenes with aura only get the modifier of the last one.
+- Aura modifier field won't appear in roll window if you already have an aura effect on going
+- Fatigue and wounds penalties only appear in roll dialog if they are non zero
+- Modifier for spell casting is again taken into account
+
+## 1.4.3
+
+### Features
+
+- Combat exertion
+- Overhaul of spell mastery to align with xp based attributes (ie: abilities, needed for long term activities)
+- Started adding realm alignment effect to some virtues when appropriate
+- Filter box for covenant lab texts
+- Filter box attributes are now saved at session level and are distinct for each player
+- Update of Spanish translation (by Teotimus)
+- System asks for confirmation before deleting a diary entry
+- New fancy chat messages with icons and foldable details
+- Dev: new event listener for confirmation before deletion of items
+- Removal of magic rules enforcement setting (it will always be enforced)
+- New button to clear auras
+- New icons by Sylph
+
+### Bug fixes
+
+- Mastery is now taken into account for the casting total display
+- Fixed long standing annoying ui bug in the tab selector
+- Filter box is no longer "draggable"
+- Added weapon initialtive bonus and overweigtht to init rolls (still simple roll)
+- It is possible again to drop powers on NPCs
+- Fatigue penalties were not computed properly.
+- Xps for spell mastery were not removed when dropping a spell on an actor
+- Removing a linked token from a scene will remove the aura effect from the actor too
+- Put Aq and Au forms in the correct alphabetical order
+- Fixed a display bug in lab sheet size where a number was not properly parsed as an integer.
+- Casting a spell whom focus applies will tick the check-box in the roll dialog.
+- Confidence is no longer available for grogs.
+- Chat messages from deleted actors no longer generate errors
+
+## 1.4.2
+
+### Features
+
+- new beast actor with custom sheet
+- Aging rolls
+- First ui integration
+- Item sheets are flavored to the kind of Actor owner (assets by @Sylph)
+- Dice so nice integration: roll botch dice displayed.
+- Fatigue management rework
+- New filter boxes for spells and magical effects
+- basic Aura management
+- New active effects
+  - New active effect to add fatigue levels
+  - New active effect to modify aging rolls
+  - New active effect to set realm alignment
+- Macro to roll stress die
+- Hints for rollable labels on the combat tab
+- Dev: possibility to define active effects with a limited number of possible values using a drop box
+- Dev: new button to migrate one specific actor
+
+### Bug fixes
+
+- Abilities compendium didn't have keys set properly.
+- fixed a bug where effects with generic abilities were impossible to delete.
+- Fixed some cosmetic problems in beast sheet
+- Ability is set to "None" by default if rolling a characteristic
+- migrating doesn't reset your longevity potion bonus and lab total anymore.
+- Spontaneous rolls from arts are no longer able have simple die option
+- Fixed Spanish and French language problem
+- Fatigue penalties are capped at 0 (ie: no bonus)
+- Characteristics rolls have now the correct characteristic selected.
+- NPCs can age and have warping
+- Fix "Show penetration and defense" feature
+- Fixed wrong mnemonics and tab problem for books
+
+## 1.4.1
+
+### Bug fixes
+
+- Fixed formula computation resulting 0 when a die explode
+
+## 1.4.0
+
+### The Diedne war
+
+A lot of knowledge was lost or hidden and forgotten, let's hope we can recover most of it....
 
 ### 1.3.2
 
@@ -15,6 +137,9 @@ Features
   - characteristics
   - fatigue penalties
   - wound penalties
+  - virtues and flaws having effects are in italic
+  - readonly effects have a tooltip when hovering on their icon
+- Rework of all dialogs design with new assets from @Sylph
 - default config for active effect
 - additionnal spell attributes (by Lanneval)
 - updated French version (by Lanneval)
@@ -22,6 +147,16 @@ Features
 - fun stress dice rolls options
 - new abilities keys for the system to identify them.
 - abilities options have all invalid characters removed automatically
+- abilities modified by active effect have now a specific shadow
+- added sub-tabs to the character sheets
+- new sub-tabs for laboratory total (WIP)
+- Add virtue/flaw types for laboratory and covenant virtues/flaws
+  - Update item dropped filter to take the virtue/flaw type into account and only allow them to be dropped on the correct sheet type
+  - Rename laboratory statistics to match the official names (with migration)
+  - Split laboratory statistics into base value, bonus (calculated from active effects) and total
+  - Add active effect type for laboratory statistics bonuses
+  - Add calculation of laboratory derived statistics (occupied size, free virtues and base safety)
+  - Create an active effect dynamically for the laboratory base safety
 
 Bug fixes
 
@@ -35,6 +170,14 @@ Bug fixes
 - Fixed undefined variable in case of dice rolls with callback
 - Voice and gestures effects are no longer not found when an effect has no change at all.
 - Fatigue levels again display the time to recover
+- reduce english version of spell attributes so it doesn't bork the spell design sheet
+- fixed a bug in migration where the lab owner value would be reset and break the link
+- Fix a bug when computing magic resistance to spells with requisites
+- remove the effect creation button for owned items (Foundry limitation, it gives an error anyway)
+- prevent the edition of internal effects
+- fixed a bug where it was impossible to edit an effect with voice or gestures as they were targetting the same key
+- fixed very old display bug where the image footer was not exactly at the bottom of the dialog
+- decrepitude and warping are no longer only computed by magi
 
 ### 1.3.1
 

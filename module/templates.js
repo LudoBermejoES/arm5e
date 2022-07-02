@@ -21,6 +21,7 @@ export const ArM5ePreloadHandlebarsTemplates = async function () {
     "systems/arm5e/templates/actor/parts/actor-diary.html",
     "systems/arm5e/templates/generic/active-effects.html",
     "systems/arm5e/templates/actor/parts/actor-setAbilities.html",
+    "systems/arm5e/templates/actor/parts/actor-magic-attributes.html",
 
     "systems/arm5e/templates/actor/parts/actor-base-effects.html",
     "systems/arm5e/templates/actor/parts/actor-magical-effects.html",
@@ -36,6 +37,7 @@ export const ArM5ePreloadHandlebarsTemplates = async function () {
     "systems/arm5e/templates/actor/parts/actor-covenantEconomics.html",
     "systems/arm5e/templates/actor/parts/actor-covenantLibrary.html",
     "systems/arm5e/templates/actor/parts/actor-covenantCalendar.html",
+    "systems/arm5e/templates/actor/parts/hermeticFilter.html",
 
     "systems/arm5e/templates/actor/parts/crucible-magic-item.html",
     "systems/arm5e/templates/actor/parts/crucible-enchantment.html",
@@ -49,12 +51,18 @@ export const ArM5ePreloadHandlebarsTemplates = async function () {
     "systems/arm5e/templates/item/parts/seasonal-activity.html",
     "systems/arm5e/templates/item/parts/item-header.html",
     "systems/arm5e/templates/item/parts/item-footer.html",
+    "systems/arm5e/templates/item/parts/activities.html",
     // Rolls partials
     "systems/arm5e/templates/roll/parts/roll-header.html",
     "systems/arm5e/templates/roll/parts/roll-footer.html",
+    "systems/arm5e/templates/roll/parts/penetration-options.html",
     // generic partials
     "systems/arm5e/templates/generic/simpleListPicker.html",
     "systems/arm5e/templates/generic/textInput.html",
-    "systems/arm5e/templates/generic/source.html"
+    "systems/arm5e/templates/generic/auraInput.html",
+    "systems/arm5e/templates/generic/largeDialog-footer.html",
+    "systems/arm5e/templates/generic/largeDialog-header.html",
+    "systems/arm5e/templates/generic/source.html",
+    "systems/arm5e/templates/generic/aging-dialog.html"
   ]);
 };

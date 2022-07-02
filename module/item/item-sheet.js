@@ -9,8 +9,9 @@ export class ArM5eItemSheet extends ItemSheet {
   static get defaultOptions() {
     return mergeObject(super.defaultOptions, {
       classes: ["arm5e", "sheet", "item"],
-      width: 650,
-      height: 650,
+      width: 654,
+      height: 750,
+      // dragDrop: [{dragSelector: ".item-list .item", dropSelector: null}],
       tabs: [
         {
           navSelector: ".sheet-tabs",
@@ -49,7 +50,7 @@ export class ArM5eItemSheet extends ItemSheet {
     context.data = itemData.data;
     context.flags = itemData.flags;
 
-    context.metadata = CONFIG.ARM5E;
+    context.config = CONFIG.ARM5E;
     if (itemData.type == "weapon") {
       let abilitiesSelect = {};
       const temp = {
@@ -76,16 +77,77 @@ export class ArM5eItemSheet extends ItemSheet {
 
       //console.log("item-sheet get data weapon")
       //console.log(data)
-    } else if (itemData.type == "spell" || itemData.type == "enchantment" || itemData.type == "laboratoryText") {
-      context.enforceMagicRules = game.settings.get("arm5e", "magicRulesEnforcement");
-    } else if (itemData.type == "ability") {
+    } else if (itemData.type == "ability" || itemData.type == "diaryEntry") {
       // TODO add other categories
       context.abilityKeysList = CONFIG.ARM5E.ALL_ABILITIES;
     }
 
+    context.ui = { flavor: "Neutral" };
+    if (this.item.isOwned) {
+      switch (this.actor.type) {
+        case "player":
+          context.ui.flavor = "PC";
+          break;
+        case "npc":
+          context.ui.flavor = "NPC";
+          break;
+        case "beast":
+          context.ui.flavor = "Beast";
+          break;
+        case "covenant":
+          context.ui.flavor = "Covenant";
+          break;
+        case "magicCodex":
+          context.ui.flavor = "Codex";
+          break;
+        case "laboratory":
+          context.ui.flavor = "Lab";
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (itemData.type == "virtue" || itemData.type == "flaw") {
+      if (this.item.isOwned) {
+        itemData.data.effectCreation = false;
+        switch (context.item.parent.data.type) {
+          case "laboratory":
+            context.config.virtueFlawTypes.available = {
+              ...context.config.virtueFlawTypes.laboratory,
+              ...context.config.virtueFlawTypes.all
+            };
+            break;
+          case "covenant":
+            context.config.virtueFlawTypes.available = {
+              ...context.config.virtueFlawTypes.covenant,
+              ...context.config.virtueFlawTypes.all
+            };
+            break;
+          case "player":
+          case "npc":
+            context.config.virtueFlawTypes.available = {
+              ...context.config.virtueFlawTypes.character,
+              ...context.config.virtueFlawTypes.all
+            };
+            break;
+        }
+      } else {
+        itemData.data.effectCreation = true;
+        context.config.virtueFlawTypes.available = {
+          ...context.config.virtueFlawTypes.character,
+          ...context.config.virtueFlawTypes.laboratory,
+          ...context.config.virtueFlawTypes.covenant,
+          ...context.config.virtueFlawTypes.all
+        };
+      }
+    }
+
     context.metagame = game.settings.get("arm5e", "metagame");
 
-    context.devMode = game.modules.get("_dev-mode")?.api?.getPackageDebugValue(CONFIG.ARM5E.MODULE_ID);
+    context.devMode = game.modules
+      .get("_dev-mode")
+      ?.api?.getPackageDebugValue(CONFIG.ARM5E.MODULE_ID);
 
     // Prepare active effects
     context.effects = ArM5eActiveEffect.prepareActiveEffectCategories(this.item.effects);
@@ -104,7 +166,7 @@ export class ArM5eItemSheet extends ItemSheet {
   setPosition(options = {}) {
     const position = super.setPosition(options);
     const sheetBody = this.element.find(".sheet-body");
-    const bodyHeight = position.height - 380;
+    const bodyHeight = position.height - 500;
     sheetBody.css("height", bodyHeight);
     return position;
   }
@@ -121,12 +183,18 @@ export class ArM5eItemSheet extends ItemSheet {
     // data-id and data-attr needed
     html.find(".increase-ability").click((event) => this._increaseScore(this.item));
     html.find(".decrease-ability").click((event) => this._deccreaseScore(this.item));
-    html.find(".default-characteristic").change((event) => this._onSelectDefaultCharacteristic(this.item, event));
+    html.find(".increase-mastery").click((event) => this._increaseMastery(this.item));
+    html.find(".decrease-mastery").click((event) => this._deccreaseMastery(this.item));
+    html
+      .find(".default-characteristic")
+      .change((event) => this._onSelectDefaultCharacteristic(this.item, event));
     html.find(".item-enchant").click((event) => this._enchantItemQuestion(this.item));
     html.find(".ability-option").change((event) => this._cleanUpOption(this.item, event));
 
     // Active Effect management
-    html.find(".effect-control").click((ev) => ArM5eActiveEffect.onManageActiveEffect(ev, this.item));
+    html
+      .find(".effect-control")
+      .click((ev) => ArM5eActiveEffect.onManageActiveEffect(ev, this.item));
   }
 
   async _onSelectDefaultCharacteristic(item, event) {
@@ -142,10 +210,49 @@ export class ArM5eItemSheet extends ItemSheet {
     return false;
   }
 
+  async _increaseMastery(item) {
+    if (item.type != "spell") {
+      return;
+    }
+    let oldXp = item.data.data.xp;
+    let newXp = Math.round(((item.data.data.mastery + 1) * (item.data.data.mastery + 2) * 5) / 2);
+
+    await item.update(
+      {
+        data: {
+          xp: newXp
+        }
+      },
+      {}
+    );
+    let delta = newXp - oldXp;
+    console.log(`Added ${delta} xps from ${oldXp} to ${newXp}`);
+  }
+  async _deccreaseMastery(item) {
+    if (item.type != "spell") {
+      return;
+    }
+    if (item.data.data.mastery != 0) {
+      let oldXp = item.data.data.xp;
+      let newXp = Math.round(((item.data.data.mastery - 1) * item.data.data.mastery * 5) / 2);
+      await item.update(
+        {
+          data: {
+            xp: newXp
+          }
+        },
+        {}
+      );
+      let delta = newXp - oldXp;
+      console.log(`Removed ${delta} xps from ${oldXp} to ${newXp} total`);
+    }
+  }
+
   async _increaseScore(item) {
     let oldXp = item.data.data.xp;
     let newXp = Math.round(
-      ((item.data.data.derivedScore + 1) * (item.data.data.derivedScore + 2) * 5) / (2 * item.data.data.xpCoeff)
+      ((item.data.data.derivedScore + 1) * (item.data.data.derivedScore + 2) * 5) /
+        (2 * item.data.data.xpCoeff)
     );
 
     await item.update(
@@ -163,7 +270,8 @@ export class ArM5eItemSheet extends ItemSheet {
     if (item.data.data.derivedScore != 0) {
       let oldXp = item.data.data.xp;
       let newXp = Math.round(
-        ((item.data.data.derivedScore - 1) * item.data.data.derivedScore * 5) / (2 * item.data.data.xpCoeff)
+        ((item.data.data.derivedScore - 1) * item.data.data.derivedScore * 5) /
+          (2 * item.data.data.xpCoeff)
       );
       await item.update(
         {
@@ -254,6 +362,11 @@ export class ArM5eItemSheet extends ItemSheet {
       ).render(true);
     });
   }
+
+  // /** @inheritdoc */
+  // async _onDrop(event) {
+  //   return {};
+  // }
 }
 
 export async function createMagicItem(html, item, codex) {
@@ -273,7 +386,8 @@ export async function createMagicItem(html, item, codex) {
 
     // prepend the item description
     // itemData[0].data.enchantmentName = enchantment.name;
-    itemData[0].data.description = `<p>${item.data.data.description}</p>` + itemData[0].data.description;
+    itemData[0].data.description =
+      `<p>${item.data.data.description}</p>` + itemData[0].data.description;
     let item = await ArM5eItemSheet.createDocument();
 
     log(false, itemData);

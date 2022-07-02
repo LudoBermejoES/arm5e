@@ -19,9 +19,32 @@ export class ArM5eNPCActorSheet extends ArM5eActorSheet {
           navSelector: ".sheet-tabs",
           contentSelector: ".sheet-body",
           initial: "description"
+        },
+        {
+          navSelector: ".abilities-tabs",
+          contentSelector: ".abilities-body",
+          initial: "abilities"
+        },
+        {
+          navSelector: ".desc-tabs",
+          contentSelector: ".desc-body",
+          initial: "desc"
+        },
+        {
+          navSelector: ".lab-tabs",
+          contentSelector: ".lab-body",
+          initial: "lab"
         }
       ]
     });
+  }
+
+  /** @override */
+  get template() {
+    if (this.actor.testUserPermission(game.user, CONST.DOCUMENT_PERMISSION_LEVELS.OBSERVER)) {
+      return `systems/arm5e/templates/actor/actor-npc-sheet.html`;
+    }
+    return `systems/arm5e/templates/actor/actor-limited-sheet.html`;
   }
 
   /* -------------------------------------------- */
@@ -30,7 +53,7 @@ export class ArM5eNPCActorSheet extends ArM5eActorSheet {
   getData() {
     const context = super.getData();
 
-    context.metadata = CONFIG.ARM5E;
+    context.config = CONFIG.ARM5E;
     // Add roll data for TinyMCE editors.
     context.rollData = context.actor.getRollData();
 
@@ -52,19 +75,37 @@ export class ArM5eNPCActorSheet extends ArM5eActorSheet {
    * @return {undefined}
    */
   _prepareCharacterItems(sheetData) {
+    super._prepareCharacterItems(sheetData);
     //let actorData = sheetData.actor.data;
   }
 
-  isItemDropAllowed(type) {
-    switch (type) {
+  isItemDropAllowed(itemData) {
+    switch (itemData.type) {
+      case "virtue":
+      case "flaw":
+        switch (itemData.data.type.value) {
+          case "laboratoryOutfitting":
+          case "laboratoryStructure":
+          case "laboratorySupernatural":
+          case "covenantSite":
+          case "covenantResources":
+          case "covenantResidents":
+          case "covenantExternalRelations":
+          case "covenantSurroundings":
+            return false;
+          default:
+            return true;
+        }
+
+      case "power":
+        if (this.actor.data.data.charType.value === "entity") return true;
+        else return false;
       case "weapon":
       case "armor":
       case "spell":
       case "vis":
       case "item":
       case "book":
-      case "virtue":
-      case "flaw":
       case "ability":
       case "diaryEntry":
       case "powerFamiliar":
@@ -113,9 +154,17 @@ export class ArM5eNPCActorSheet extends ArM5eActorSheet {
         log(false, "Invalid drop");
         return false;
       }
+    } else if (type == "ability") {
+      if (this.actor.hasSkill(itemData.data.key)) {
+        ui.notifications.warn(`This character already have the ability: ${itemData.name}`);
+      }
     }
     // }
     const res = await super._onDropItem(event, data);
+
+    if (res.length == 1) {
+      res[0].sheet.render(true);
+    }
     return res;
   }
 }

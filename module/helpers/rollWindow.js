@@ -1,35 +1,81 @@
-import { ARM5E } from "../metadata.js";
+import { ARM5E } from "../config.js";
 import ArM5eActiveEffect from "./active-effects.js";
 import ACTIVE_EFFECTS_TYPES from "../constants/activeEffectsTypes.js";
 import { simpleDie, stressDie } from "../dice.js";
-import { getActorsFromTargetedTokens } from "./tokens.js";
-import { calculateSuccessOfMagic } from "./magic.js";
-import { chatContestOfMagic } from "./chat.js";
+import { checkTargetAndCalculateResistance } from "./magic.js";
+import { chatFailedCasting } from "./chat.js";
+import { ArM5ePCActor } from "../actor/actor-pc.js";
+import { applyAgingEffects, agingCrisis } from "./long-term-activities.js";
+import { exertSelf } from "./combat.js";
+import { log } from "../tools.js";
 
-const CALL_BACK_AFTER_ROLL = {
-  SPELL: {
-    CALLBACK: checkTargetAndCalculateResistante
-  }
+// below is a bitmap
+const ROLL_MODES = {
+  STRESS: 1,
+  SIMPLE: 2,
+  NO_BOTCH: 4,
+  NO_CONF: 8, // no confidence use
+  UNCONSCIOUS: 16, // can roll unconscious
+  PRIVATE: 32, // roll is private between the GM and player
+  // common combos
+  STRESS_OR_SIMPLE: 3
 };
 
-const STRESS_DIE = {
+const ROLL_PROPERTIES = {
+  DEFAULT: {
+    MODE: ROLL_MODES.STRESS_OR_SIMPLE,
+    TITLE: "arm5e.dialog.title.rolldie"
+  },
   COMBAT: {
+    MODE: ROLL_MODES.STRESS,
+    TITLE: "arm5e.dialog.title.rolldie",
+    ALT_ACTION: exertSelf,
+    ALT_ACTION_LABEL: "arm5e.dialog.button.exertSelf"
+  },
+  INIT: {
+    MODE: ROLL_MODES.STRESS,
     TITLE: "arm5e.dialog.title.rolldie"
   },
   MAGIC: {
+    MODE: ROLL_MODES.STRESS,
+    TITLE: "arm5e.dialog.title.rolldie",
+    CALLBACK: castSpell
+  },
+  SPONT: {
+    MODE: ROLL_MODES.STRESS,
     TITLE: "arm5e.dialog.title.rolldie"
   },
-  SPON: {
+  CHAR: {
+    MODE: 19, // STRESS + SIMPLE + UNCONSCIOUS
     TITLE: "arm5e.dialog.title.rolldie"
   },
-  OPTION: {
-    TITLE: "arm5e.dialog.title.rolldie"
+  SPELL: {
+    MODE: ROLL_MODES.STRESS_OR_SIMPLE,
+    TITLE: "arm5e.dialog.title.rolldie",
+    CALLBACK: castSpell
+  },
+  AGING: {
+    MODE: 61, // STRESS + NO_BOTCH + NO_CONF + UNCONSCIOUS + PRIVATE
+    TITLE: "arm5e.aging.roll.label",
+    CALLBACK: applyAgingEffects
+  },
+  CRISIS: {
+    MODE: 58, // SIMPLE + NO_CONF + UNCONSCIOUS + PRIVATE
+    TITLE: "arm5e.aging.crisis.label",
+    CALLBACK: agingCrisis
   }
 };
+function getRollTypeProperties(type) {
+  return ROLL_PROPERTIES[type.toUpperCase()] ?? ROLL_PROPERTIES.DEFAULT;
+}
 
-function prepareRollVariables(dataset, actorData, activeEffects) {
+function prepareRollVariables(dataset, actor) {
+  const actorData = actor.data;
   if (dataset.roll) {
+    if (actorData.data.roll == undefined) actorData.data.roll = {};
     // clean roll data
+    actorData.data.roll.year = "";
+    actorData.data.roll.season = "";
     actorData.data.roll.type = "";
     actorData.data.roll.label = "";
     actorData.data.roll.modifier = 0;
@@ -49,7 +95,10 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
     actorData.data.roll.ritual = false;
     actorData.data.roll.focus = false;
     actorData.data.roll.spell = null;
-
+    // This is property will be used in the chat message as an icon for the roll
+    actorData.data.roll.img = null;
+    actorData.data.roll.name = null;
+    //
     actorData.data.roll.techniqueScore = 0;
     actorData.data.roll.formScore = 0;
 
@@ -64,6 +113,7 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
     actorData.data.roll.option5 = 0;
     actorData.data.roll.txtOption5 = "";
     actorData.data.roll.bonusActiveEffects = 0;
+    actorData.data.roll.hasAuraBonus = false;
 
     // set data to roll
     if (dataset.roll) {
@@ -73,19 +123,38 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
       actorData.data.roll.label = dataset.name;
     }
 
-    if (dataset.defaultcharacteristicforability) {
+    if (dataset.roll == "combat") {
+      actorData.data.roll.img = actorData.data.combat.img;
+      actorData.data.roll.name = actorData.data.combat.name;
+    }
+    if (dataset.roll == "char") {
+      actorData.data.roll.characteristic = dataset.characteristic;
+    } else if (dataset.roll == "ability" && dataset.defaultcharacteristicforability) {
       actorData.data.roll.characteristic = dataset.defaultcharacteristicforability;
-    }
-    if (dataset.ability) {
-      actorData.data.roll.ability = dataset.ability;
-    }
 
-    if (dataset.roll == "spell" || dataset.roll == "magic" || dataset.roll == "spont") {
+      if (dataset.ability) {
+        actorData.data.roll.ability = dataset.ability;
+        const ab = actorData.items.get(dataset.ability);
+        actorData.data.roll.img = ab.img;
+        actorData.data.roll.name = ab.name;
+      }
+    } else if (dataset.roll == "spell" || dataset.roll == "magic" || dataset.roll == "spont") {
+      // penetration  management
+      actorData.data.roll.penetration = actor.getAbilityStats("penetration");
+      actorData.data.roll.penetration.multiplier = 1;
+      actorData.data.roll.penetration.specApply = false;
+      actorData.data.roll.penetration.PenetrationMastery = false;
+      actorData.data.roll.penetration.MasteryScore = 0;
+      actorData.data.roll.penetration.multiplierBonusArcanic = 0;
+      actorData.data.roll.penetration.multiplierBonusSympathic = 0;
+      actorData.data.roll.penetration.config = CONFIG.ARM5E.magic.penetration;
+
       if (dataset.id) {
         actorData.data.roll.effectId = dataset.id;
         // TODO: perf: get it from spells array?
         actorData.data.roll.spell = actorData.items.get(dataset.id);
         actorData.data.roll.label += " (" + actorData.data.roll.spell.data.data.level + ")";
+        actorData.data.roll.img = actorData.data.roll.spell.img;
         let techData = actorData.data.roll.spell._getTechniqueData(actorData);
         actorData.data.roll.techniqueText = techData[0];
         actorData.data.roll.techniqueScore = techData[1];
@@ -94,38 +163,42 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
         actorData.data.roll.formText = formData[0];
         actorData.data.roll.formScore = formData[1];
 
-        actorData.data.roll.focus = actorData.data.roll.spell.data.data.focus;
+        actorData.data.roll.focus = actorData.data.roll.spell.data.data.applyFocus;
         actorData.data.roll.ritual = actorData.data.roll.spell.data.data.ritual;
+        actorData.data.roll.penetration.MasteryScore = actorData.data.roll.spell.data.data.mastery;
       } else {
         if (dataset.technique) {
           actorData.data.roll.techniqueText = ARM5E.magic.techniques[dataset.technique].label;
-          actorData.data.roll.techniqueScore = parseInt(actorData.data.arts.techniques[dataset.technique].finalScore);
+          actorData.data.roll.techniqueScore = parseInt(
+            actorData.data.arts.techniques[dataset.technique].finalScore
+          );
         }
         if (dataset.mform) {
-          actorData.data.roll.formScore = parseInt(actorData.data.arts.forms[dataset.mform].finalScore);
+          actorData.data.roll.formScore = parseInt(
+            actorData.data.arts.forms[dataset.mform].finalScore
+          );
           actorData.data.roll.formText = ARM5E.magic.forms[dataset.mform].label;
         }
       }
-      // if (dataset.focus) {
-      //     if ((dataset.focus) == "false") {
-      //         actorData.data.roll.focus = false;
-      //     } else if ((dataset.focus) == "true") {
-      //         actorData.data.roll.focus = true;
-      //     } else {
-      //         actorData.data.roll.focus = dataset.ritual;
-      //     }
-      // }
 
       if (dataset.bonusActiveEffects) {
         actorData.data.roll.bonusActiveEffects = Number(dataset.bonusActiveEffects);
-        const activeEffectsByType = ArM5eActiveEffect.findAllActiveEffectsWithType(activeEffects, "spellcasting");
+        const activeEffects = actor.effects;
+        const activeEffectsByType = ArM5eActiveEffect.findAllActiveEffectsWithType(
+          activeEffects,
+          "spellcasting"
+        );
         actorData.data.roll.activeEffects = activeEffectsByType.map((activeEffect) => {
           const label = activeEffect.data.label;
           let value = 0;
+          if (activeEffect.getFlag("arm5e", "value")?.includes("AURA")) {
+            actorData.data.roll.hasAuraBonus = true;
+          }
           activeEffect.data.changes
             .filter((c, idx) => {
               return (
-                c.mode == CONST.ACTIVE_EFFECT_MODES.ADD && activeEffect.getFlag("arm5e", "type")[idx] == "spellcasting"
+                c.mode == CONST.ACTIVE_EFFECT_MODES.ADD &&
+                activeEffect.getFlag("arm5e", "type")[idx] == "spellcasting"
               );
             })
             .forEach((item) => {
@@ -153,6 +226,51 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
       //         actorData.data.roll.ritual = dataset.ritual;
       //     }
       // }
+    } else if (dataset.roll == "aging") {
+      actorData.data.roll.year = parseInt(dataset.year);
+      actorData.data.roll.season = ARM5E.seasons.winter.label;
+      actorData.data.roll.label =
+        game.i18n.localize("arm5e.aging.roll.label") +
+        " " +
+        actorData.data.roll.season +
+        " " +
+        actorData.data.roll.year;
+      actorData.data.roll.txtOption1 = game.i18n.localize("arm5e.sheet.ageModifier");
+      actorData.data.roll.option1 = Math.round(parseInt(actorData.data.age.value) / 10);
+      actorData.data.roll.txtOption2 = game.i18n.localize("arm5e.sheet.modifiersLife");
+      let livingMod = 0;
+      if (actorData.data.covenant.linked) {
+        let cov = game.actors.get(actorData.data.covenant.actorId);
+        if (ArM5ePCActor.isMagus(actorData.type, actorData.data.charType.value)) {
+          livingMod = cov.data.data.modifiersLife.magi ?? 0;
+        } else {
+          livingMod = cov.data.data.modifiersLife.mundane ?? 0;
+        }
+      }
+      actorData.data.roll.option2 = livingMod;
+      actorData.data.roll.txtOption3 = game.i18n.localize("arm5e.sheet.longevityModifier");
+      actorData.data.roll.option3 =
+        actorData.data.laboratory.longevityRitual.modifier + actorData.data.bonuses.traits.aging;
+      if (actorData.data.familiar && actorData.data.familiar.cordFam.bronze > 0) {
+        actorData.data.roll.txtOption4 = game.i18n.localize("arm5e.aging.roll.bronze");
+        actorData.data.roll.option4 = actorData.data.familiar.cordFam.bronze;
+      }
+      actorData.data.roll.useFatigue = false;
+    } else if (dataset.roll == "crisis") {
+      actorData.data.roll.year = parseInt(dataset.year);
+      actorData.data.roll.season = game.i18n.localize(ARM5E.seasons.winter.label);
+      actorData.data.roll.label =
+        game.i18n.localize("arm5e.aging.crisis.label") +
+        " " +
+        actorData.data.roll.season +
+        " " +
+        actorData.data.roll.year;
+
+      actorData.data.roll.txtOption1 = game.i18n.localize("arm5e.sheet.decrepitude");
+      actorData.data.roll.option1 = actorData.data.decrepitude.finalScore;
+      actorData.data.roll.txtOption2 = game.i18n.localize("arm5e.sheet.ageModifier");
+      actorData.data.roll.option2 = Math.round(parseInt(actorData.data.age.value) / 10);
+      actorData.data.roll.useFatigue = false;
     }
     if (dataset.divide) {
       actorData.data.roll.divide = dataset.divide;
@@ -161,6 +279,8 @@ function prepareRollVariables(dataset, actorData, activeEffects) {
       actorData.data.roll.useFatigue = dataset.usefatigue;
     }
   }
+
+  log(false, `Roll data: ${JSON.stringify(actorData.data.roll)}`);
 }
 
 function prepareRollFields(dataset, actorData) {
@@ -216,7 +336,12 @@ function cleanBooleans(dataset, actorData) {
 }
 
 function chooseTemplate(dataset) {
-  if (dataset.roll == "combat" || dataset.roll == "option" || dataset.roll == "general") {
+  if (
+    dataset.roll == "combat" ||
+    dataset.roll == "init" ||
+    dataset.roll == "option" ||
+    dataset.roll == "general"
+  ) {
     return "systems/arm5e/templates/roll/roll-options.html";
   }
   if (dataset.roll == "char" || dataset.roll == "ability") {
@@ -229,7 +354,14 @@ function chooseTemplate(dataset) {
   if (dataset.roll == "magic" || dataset.roll == "spell") {
     return "systems/arm5e/templates/roll/roll-spell.html";
   }
-
+  if (dataset.roll == "aging") {
+    //aging roll
+    return "systems/arm5e/templates/roll/roll-aging.html";
+  }
+  if (dataset.roll == "crisis") {
+    //aging crisis roll
+    return "systems/arm5e/templates/roll/roll-aging-crisis.html";
+  }
   return "";
 }
 
@@ -247,58 +379,86 @@ function getDebugButtonsIfNeeded(actor, callback) {
   return {
     explode: {
       label: "DEV Roll 1",
-      callback: (html) => stressDie(html, actor, 1, callback)
+      callback: (html) => stressDie(html, actor, 1, callback, actor.data.data.roll.type)
     },
     zero: {
       label: "DEV Roll 0",
-      callback: (html) => stressDie(html, actor, 2, callback)
+      callback: (html) => stressDie(html, actor, 2, callback, actor.data.data.roll.type)
     }
   };
 }
 
 function getDialogData(dataset, html, actor) {
-  const callback = CALL_BACK_AFTER_ROLL[dataset.roll.toUpperCase()]?.CALLBACK;
-  if (STRESS_DIE[dataset.roll.toUpperCase()]) {
-    return {
-      title: game.i18n.localize(STRESS_DIE[dataset.roll.toUpperCase()].TITLE),
-      content: html,
-      buttons: {
-        yes: {
-          icon: "<i class='fas fa-check'></i>",
-          label: game.i18n.localize("arm5e.dialog.button.stressdie"),
-          callback: (html) => stressDie(html, actor, 0, callback)
-        },
-        no: {
-          icon: "<i class='fas fa-ban'></i>",
-          label: game.i18n.localize("arm5e.dialog.button.cancel"),
-          callback: null
-        },
-        ...getDebugButtonsIfNeeded(actor, callback)
-      }
-    };
-  } else {
-    return {
-      title: game.i18n.localize("arm5e.dialog.title.rolldie"),
-      content: html,
-      buttons: {
-        yes: {
-          icon: "<i class='fas fa-check'></i>",
-          label: game.i18n.localize("arm5e.dialog.button.simpledie"),
-          callback: (html) => simpleDie(html, actor, callback)
-        },
-        no: {
-          icon: "<i class='fas fa-bomb'></i>",
-          label: game.i18n.localize("arm5e.dialog.button.stressdie"),
-          callback: (html) => stressDie(html, actor, 0, callback)
-        },
-        ...getDebugButtonsIfNeeded(actor, callback)
-      }
+  const callback = getRollTypeProperties(dataset.roll).CALLBACK;
+
+  let btns = {};
+  let mode = 0;
+  const altAction = getRollTypeProperties(dataset.roll).ALT_ACTION;
+  let altBtn;
+  if (altAction) {
+    const btnLabel = getRollTypeProperties(dataset.roll).ALT_ACTION_LABEL;
+    altBtn = {
+      icon: "<i class='fas fa-check'></i>",
+      label: game.i18n.localize(btnLabel),
+      callback: (html) => altAction(html, actor, mode, callback, dataset.roll)
     };
   }
+
+  const title = getRollTypeProperties(dataset.roll).TITLE;
+  if (getRollTypeProperties(dataset.roll).MODE & ROLL_MODES.STRESS) {
+    if (getRollTypeProperties(dataset.roll).MODE & ROLL_MODES.NO_BOTCH) {
+      mode = 4; // no botches
+    }
+    btns.yes = {
+      icon: "<i class='fas fa-check'></i>",
+      label: game.i18n.localize("arm5e.dialog.button.stressdie"),
+      callback: (html) => stressDie(html, actor, mode, callback, dataset.roll)
+    };
+    if (altAction) {
+      btns.alt = altBtn;
+    }
+    if (getRollTypeProperties(dataset.roll).MODE & ROLL_MODES.SIMPLE) {
+      btns.no = {
+        icon: "<i class='fas fa-check'></i>",
+        label: game.i18n.localize("arm5e.dialog.button.simpledie"),
+        callback: async (html) => await simpleDie(html, actor, dataset.roll, callback)
+      };
+    } else {
+      btns.no = {
+        icon: "<i class='fas fa-ban'></i>",
+        label: game.i18n.localize("arm5e.dialog.button.cancel"),
+        callback: null
+      };
+    }
+  } else {
+    // Simple die only
+    btns.yes = {
+      icon: "<i class='fas fa-check'></i>",
+      label: game.i18n.localize("arm5e.dialog.button.simpledie"),
+      callback: async (html) => await simpleDie(html, actor, dataset.roll, callback)
+    };
+    if (altAction) {
+      btns.alt = altBtn;
+    }
+    btns.no = {
+      icon: "<i class='fas fa-ban'></i>",
+      label: game.i18n.localize("arm5e.dialog.button.cancel"),
+      callback: null
+    };
+  }
+  return {
+    title: game.i18n.localize(title),
+    content: html,
+    buttons: {
+      ...btns,
+      ...getDebugButtonsIfNeeded(actor, callback)
+    }
+  };
 }
 
 function addListenersDialog(html) {
   html.find(".toggleHidden").click((event) => {
+    log(false, "toggle Hidden");
     const hidden = $(event.target).data("hidden");
     html.find(`.${hidden}`).toggle();
   });
@@ -318,21 +478,39 @@ async function renderRollTemplate(dataset, template, actor, actorData) {
     },
     {
       classes: ["arm5e-dialog", "dialog"],
-      height: "auto"
+      height: "600px",
+      width: "400px"
     }
   );
   dialog.render(true);
 }
 
-function checkTargetAndCalculateResistante(html, actorCaster, roll, message) {
-  const actorsTargeted = getActorsFromTargetedTokens(actorCaster);
-  if (!actorsTargeted) {
-    return false;
+async function castSpell(html, actorCaster, roll, message) {
+  // first check that the spell succeeds
+  const levelOfSpell = actorCaster.data.data.roll.spell.data.data.level;
+  const totalOfSpell = roll._total;
+  if (actorCaster.data.data.roll.type == "spell") {
+    if (totalOfSpell < levelOfSpell) {
+      let fatigue = 1;
+      if (actorCaster.data.data.roll.spell.data.data.ritual) {
+        fatigue = Math.ceil((levelOfSpell - totalOfSpell) / 5);
+      }
+      // lose fatigue levels
+      actorCaster.loseFatigueLevel(fatigue);
+      if (totalOfSpell < levelOfSpell - 10) {
+        await chatFailedCasting(actorCaster, roll, message, fatigue);
+        return false;
+      }
+    }
+  } else {
+    // Magic effect
+    if (totalOfSpell < levelOfSpell) {
+      await chatFailedCasting(actorCaster, roll, message, 0);
+      return false;
+    }
   }
-  actorsTargeted.forEach((actorTarget) => {
-    const successOfMagic = calculateSuccessOfMagic({ actorTarget, actorCaster, roll, spell: message });
-    chatContestOfMagic({ actorCaster, actorTarget, ...successOfMagic });
-  });
+  // then do contest of magic
+  checkTargetAndCalculateResistance(actorCaster, roll, message);
 }
 
 export {
@@ -341,5 +519,8 @@ export {
   cleanBooleans,
   renderRollTemplate,
   prepareRollFields,
-  prepareRollVariables
+  prepareRollVariables,
+  ROLL_MODES,
+  ROLL_PROPERTIES,
+  getRollTypeProperties
 };

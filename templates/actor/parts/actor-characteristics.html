@@ -1,7 +1,7 @@
 <div class="characteristics grid grid-4col">
   {{#each data.characteristics as |characteristic key|}}
   <div class="characteristic flexrow flex-group-center">
-    {{#with (lookup @root.metadata.character.characteristics key)}}
+    {{#with (lookup @root.config.character.characteristics key)}}
     <label
       for="data.characteristics.{{key}}.value"
       class="resource-label rollable"
@@ -15,6 +15,8 @@
       name="data.characteristics.{{key}}.value"
       value="{{numberFormat characteristic.value decimals=0 sign=true}}"
       data-dtype="Number"
+      {{{characteristic.ui.style}}}
+      title="{{characteristic.ui.title}}"
     />
   </div>
   {{/each}}

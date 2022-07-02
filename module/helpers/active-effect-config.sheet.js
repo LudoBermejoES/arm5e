@@ -1,4 +1,4 @@
-import { ARM5E } from "../metadata.js";
+import { ARM5E } from "../config.js";
 
 import { log, error } from "../tools.js";
 
@@ -12,8 +12,8 @@ export class ArM5eActiveEffectConfig extends ActiveEffectConfig {
   static get defaultOptions() {
     return mergeObject(super.defaultOptions, {
       classes: ["arm5e", "sheet", "active-effect-sheet"],
-      width: 640,
-      height: "auto",
+      width: 700,
+      height: "600px",
       submitOnChange: true,
       closeOnSubmit: false,
       tabs: [
@@ -51,19 +51,29 @@ export class ArM5eActiveEffectConfig extends ActiveEffectConfig {
     context.options = this.object.getFlag("arm5e", "option");
     for (let idx = 0; idx < context.selectedTypes.length; idx++) {
       let tmpSubTypes = context.types[context.selectedTypes[idx]].subtypes;
-      log(false, tmpSubTypes);
       let tmp = tmpSubTypes[context.selectedSubtypes[idx]].key;
-      if (context.options[idx] != null) {
-        log(false, `subtype: ${tmpSubTypes[context.selectedSubtypes[idx]].key}`);
-        tmp = tmp.replace("#OPTION#", context.options[idx]);
-        log(false, `computedKey: ${tmp}`);
+      // option key replacement only done for abilities for now.
+      if (ACTIVE_EFFECTS_TYPES[context.selectedTypes[idx]].category === "abilities") {
+        if (context.options[idx] != null) {
+          tmp = tmp.replace("#OPTION#", context.options[idx]);
+        }
+      }
+      let withChoice =
+        ACTIVE_EFFECTS_TYPES[context.selectedTypes[idx]].subtypes[context.selectedSubtypes[idx]]
+          .choice;
+      if (withChoice) {
+        tmpSubTypes[context.selectedSubtypes[idx]].withChoice = true;
+      } else {
+        tmpSubTypes[context.selectedSubtypes[idx]].withChoice = false;
       }
       tmpSubTypes[context.selectedSubtypes[idx]].computedKey = tmp;
 
       context.subtypes.push(tmpSubTypes);
     }
 
-    context.devMode = game.modules.get("_dev-mode")?.api?.getPackageDebugValue(CONFIG.ARM5E.MODULE_ID);
+    context.devMode = game.modules
+      .get("_dev-mode")
+      ?.api?.getPackageDebugValue(CONFIG.ARM5E.MODULE_ID);
     log(false, "Effect config sheet data");
     log(false, context);
     return context;
@@ -118,7 +128,8 @@ export class ArM5eActiveEffectConfig extends ActiveEffectConfig {
     let arraySubtypes = this.object.getFlag("arm5e", "subtype");
     let arrayOptions = this.object.getFlag("arm5e", "option");
     arraySubtypes[index] = value;
-    arrayOptions[index] = ACTIVE_EFFECTS_TYPES[arrayTypes[index]].subtypes[arraySubtypes[index]].option || null;
+    arrayOptions[index] =
+      ACTIVE_EFFECTS_TYPES[arrayTypes[index]].subtypes[arraySubtypes[index]].option || null;
     let computedKey = ACTIVE_EFFECTS_TYPES[arrayTypes[index]].subtypes[value].key;
     if (arrayOptions[index] != null) {
       computedKey = computedKey.replace("#OPTION#", arrayOptions[index]);
@@ -164,9 +175,12 @@ export class ArM5eActiveEffectConfig extends ActiveEffectConfig {
 
       case "option":
         const index = parseInt(event.currentTarget.dataset.idx);
-        return this._setOption(index, arrayTypes[index], arraySubtypes[index], arrayOptions[index]).then(() =>
-          this.render()
-        );
+        return this._setOption(
+          index,
+          arrayTypes[index],
+          arraySubtypes[index],
+          arrayOptions[index]
+        ).then(() => this.render());
         break;
       case "delete":
         // remove type and subtype of the erased change
@@ -183,7 +197,9 @@ export class ArM5eActiveEffectConfig extends ActiveEffectConfig {
           }
         };
         button.closest(".effect-change").remove();
-        return this.submit({ preventClose: true, updateData: updateFlags }).then(() => this.render());
+        return this.submit({ preventClose: true, updateData: updateFlags }).then(() =>
+          this.render()
+        );
     }
   }
 
@@ -205,8 +221,10 @@ export class ArM5eActiveEffectConfig extends ActiveEffectConfig {
               icon: "<i class='fas fa-check'></i>",
               label: `Yes`,
               callback: async (html) => {
-                let find = html.find(".textInput");
-                chosenOption = find[0].value;
+                let result = html.find('input[name="inputField"]');
+                if (result.val() !== "") {
+                  chosenOption = result.val();
+                }
                 resolve();
               }
             },
@@ -233,7 +251,9 @@ export class ArM5eActiveEffectConfig extends ActiveEffectConfig {
     }
     let computedKey = ACTIVE_EFFECTS_TYPES[type].subtypes[subtype].key;
     let updateData = {};
-    updateData[`flags.arm5e.option.${index}`] = chosenOption;
+    let arrayOptions = this.object.getFlag("arm5e", "option");
+    arrayOptions[index] = chosenOption;
+    updateData[`flags.arm5e.option`] = arrayOptions;
     updateData[`changes.${index}.key`] = computedKey.replace("#OPTION#", chosenOption);
     return this.submit({ preventClose: true, updateData: updateData });
   }

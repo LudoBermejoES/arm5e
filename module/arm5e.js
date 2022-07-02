@@ -1,8 +1,8 @@
 // Import Modules
-import { ARM5E, ARM5E_DEFAULT_ICONS } from "./metadata.js";
+import { ARM5E, ARM5E_DEFAULT_ICONS } from "./config.js";
 import { ArM5ePCActor } from "./actor/actor-pc.js";
 import { ArM5ePCActorSheet } from "./actor/actor-pc-sheet.js";
-
+import { ArM5eBeastActorSheet } from "./actor/actor-beast-sheet.js";
 import { ArM5eNPCActorSheet } from "./actor/actor-npc-sheet.js";
 import { ArM5eLaboratoryActorSheet } from "./actor/actor-laboratory-sheet.js";
 import { ArM5eCovenantActorSheet } from "./actor/actor-covenant-sheet.js";
@@ -11,25 +11,35 @@ import { ArM5eCrucibleSheet } from "./actor/actor-crucible-sheet.js";
 import { ArM5eItem } from "./item/item.js";
 import { ArM5eItemSheet } from "./item/item-sheet.js";
 import { ArM5eItemMagicSheet } from "./item/item-magic-sheet.js";
-
+import { ArM5eItemDiarySheet } from "./item/item-diary-sheet.js";
 import ArM5eActiveEffect from "./helpers/active-effects.js";
 
+import { ArM5eScene } from "./ui/ars-scene.js";
 import { prepareDatasetByTypeOfItem } from "./helpers/items.js";
 import { ArM5ePreloadHandlebarsTemplates } from "./templates.js";
 import { ArM5eActiveEffectConfig } from "./helpers/active-effect-config.sheet.js";
-import * as Arm5eChatMessage from "./features/chat-message-hook.js";
+import * as Arm5eChatMessage from "./helpers/chat.js";
+
+import {
+  addActiveEffectAuraToActor,
+  clearAuraFromActor,
+  modifyAuraActiveEffectForAllTokensInScene
+} from "./helpers/aura.js";
 
 // experiment
-//import * as Arm5eUI from "./features/ui-integration.js";
+import { ArsLayer, addArsButtons } from "./ui/ars-layer.js";
 
 import { migration } from "./migration.js";
-import { log, generateActiveEffectFromAbilities } from "./tools.js";
+import { log, generateActiveEffectFromAbilities, getDocumentFromCompendium } from "./tools.js";
 
 Hooks.once("init", async function () {
   game.arm5e = {
     ArM5ePCActor,
     ArM5eItem,
-    rollItemMacro
+    rollItemMacro,
+    setAuraValueForAllTokensInScene,
+    setAuraValueForToken,
+    resetTokenAuraToSceneAura
   };
 
   /**
@@ -37,7 +47,7 @@ Hooks.once("init", async function () {
    * @type {String}
    */
   CONFIG.Combat.initiative = {
-    formula: "1d10 + @characteristics.qik.value",
+    formula: "1d10 + @characteristics.qik.value + @combat.init + @combat.overload",
     decimals: 2
   };
 
@@ -97,17 +107,6 @@ Hooks.once("init", async function () {
   });
 
   /**
-   * Whether to enforce or not the magic rules
-   */
-  game.settings.register("arm5e", "magicRulesEnforcement", {
-    name: "Enforce magic rules",
-    scope: "world",
-    config: true,
-    type: Boolean,
-    default: false
-  });
-
-  /**
    * Show NPC magic details (cast, penetration and defense)
    */
   game.settings.register("arm5e", "showNPCMagicDetails", {
@@ -118,7 +117,7 @@ Hooks.once("init", async function () {
       SHOW_ALL: "Give me all details!",
       ONLY_RESULTS: "Show me only the result"
     },
-    default: "MONO"
+    default: "ONLY_RESULTS"
   });
 
   /**
@@ -134,21 +133,15 @@ Hooks.once("init", async function () {
       PLAYERS_ONLY: "Players only",
       EVERYONE: "Everyone"
     },
-    default: "PLAYER_ONLY"
+    default: "PLAYERS_ONLY"
   });
 
-  /**
-   * Whether to sort lists of stuff
-   */
-  // game.settings.register("arm5e", "sortItems", {
-  //     name: "Sort lists of item",
-  //     scope: "world",
-  //     config: true,
-  //     type: Boolean,
-  //     default: false
-  // });
+  CONFIG.Canvas.layers["arsmagica"] = {
+    layerClass: ArsLayer,
+    group: "primary"
+  };
 
-  // Add custom metadata
+  // Add system metadata
   CONFIG.ARM5E = ARM5E;
 
   CONFIG.ARM5E_DEFAULT_ICONS = ARM5E_DEFAULT_ICONS[game.settings.get("arm5e", "defaultIconStyle")];
@@ -157,6 +150,7 @@ Hooks.once("init", async function () {
   CONFIG.Actor.documentClass = ArM5ePCActor;
   CONFIG.Item.documentClass = ArM5eItem;
   CONFIG.ActiveEffect.documentClass = ArM5eActiveEffect;
+  CONFIG.Scene.documentClass = ArM5eScene;
 
   // Register sheet application classes
   Actors.unregisterSheet("core", ActorSheet);
@@ -172,6 +166,12 @@ Hooks.once("init", async function () {
     makeDefault: true,
     label: "arm5e.sheet.npc"
   });
+  Actors.registerSheet("arm5eBeast", ArM5eBeastActorSheet, {
+    types: ["beast"],
+    makeDefault: true,
+    label: "arm5e.sheet.beast"
+  });
+
   Actors.registerSheet("arm5eLaboratory", ArM5eLaboratoryActorSheet, {
     types: ["laboratory"],
     makeDefault: true,
@@ -201,6 +201,11 @@ Hooks.once("init", async function () {
     makeDefault: true
   });
 
+  Items.registerSheet("arm5e", ArM5eItemDiarySheet, {
+    types: ["diaryEntry"],
+    makeDefault: true
+  });
+
   Items.registerSheet("arm5e", ArM5eItemSheet, {
     types: [
       "weapon",
@@ -212,8 +217,6 @@ Hooks.once("init", async function () {
       "flaw",
       "ability",
       "abilityFamiliar",
-      "diaryEntry",
-      "dairyEntry",
       "power",
       "might",
       "powerFamiliar",
@@ -277,6 +280,7 @@ Hooks.once("ready", async function () {
   Hooks.on("hotbarDrop", (bar, data, slot) => createArM5eMacro(data, slot));
 
   Hooks.on("dropActorSheetData", (actor, sheet, data) => onDropActorSheetData(actor, sheet, data));
+  Hooks.on("dropCanvasData", (canvas, data) => onDropOnCanvas(canvas, data));
 
   if (game.user.isGM) {
     // Determine whether a system migration is required and feasible
@@ -289,10 +293,14 @@ Hooks.once("ready", async function () {
     if (!currentVersion && totalDocuments === 0) {
       game.settings.set("arm5e", "systemMigrationVersion", game.system.data.version);
     } else {
-      const needsMigration = !currentVersion || foundry.utils.isNewerVersion(SYSTEM_VERSION_NEEDED, currentVersion);
+      const needsMigration =
+        !currentVersion || foundry.utils.isNewerVersion(SYSTEM_VERSION_NEEDED, currentVersion);
       if (needsMigration) {
         // Perform the migration
-        if (currentVersion && foundry.utils.isNewerVersion(COMPATIBLE_MIGRATION_VERSION, currentVersion)) {
+        if (
+          currentVersion &&
+          foundry.utils.isNewerVersion(COMPATIBLE_MIGRATION_VERSION, currentVersion)
+        ) {
           const warning = `Your Ars Magica system data is from too old a Foundry version and cannot be reliably migrated to the latest version. The process will be attempted, but errors may occur.`;
           ui.notifications.error(warning, {
             permanent: true
@@ -310,9 +318,17 @@ Hooks.once("ready", async function () {
       permanent: false
     });
   } else if (codex.length === 0) {
-    ui.notifications.error(game.i18n.localize("arm5e.notification.codex.none"), {
+    ui.notifications.warn(game.i18n.localize("arm5e.notification.codex.none"), {
       permanent: false
     });
+  }
+
+  // setup session storage:
+
+  let userData = sessionStorage.getItem(`usercache-${game.user.id}`);
+  if (!userData) {
+    // create user cache if it doesn't exist yet
+    sessionStorage.setItem(`usercache-${game.user.id}`, JSON.stringify({}));
   }
 });
 
@@ -339,7 +355,8 @@ Hooks.once("devModeReady", ({ registerPackageDebugFlag }) => {
  */
 async function createArM5eMacro(data, slot) {
   //if (data.type !== "Item") return;
-  if (!("data" in data)) return ui.notifications.warn("You can only create macro buttons for owned Items");
+  if (!("data" in data))
+    return ui.notifications.warn("You can only create macro buttons for owned Items");
   const item = data.data;
 
   // Create the macro command
@@ -360,14 +377,13 @@ async function createArM5eMacro(data, slot) {
   return false;
 }
 
-function onDropActorSheetData(actor, sheet, data) {
+async function onDropActorSheetData(actor, sheet, data) {
   if (data.type == "Folder") {
     return true;
   }
   if (data.pack) {
-    const pack = game.packs.get(data.pack);
-    const item = pack.index.get(data.id);
-    if (sheet.isItemDropAllowed(item.type)) {
+    const item = await getDocumentFromCompendium(data.pack, data.id);
+    if (sheet.isItemDropAllowed(item.data)) {
       return true;
     } else {
       return false;
@@ -382,10 +398,10 @@ function onDropActorSheetData(actor, sheet, data) {
       item = data;
     }
 
-    if (sheet.isItemDropAllowed(item.data.type)) {
+    if (sheet.isItemDropAllowed(item.data)) {
       return true;
     } else {
-      console.log("Prevented invalid item drop");
+      log(true, "Prevented invalid item drop ", item.data, " on actor ", actor);
       return false;
     }
   } else if (data.type == "Actor") {
@@ -411,11 +427,57 @@ function onDropActorSheetData(actor, sheet, data) {
 function rollItemMacro(itemId, actorId) {
   const actor = game.actors.get(actorId);
   const item = actor.items.get(itemId);
-  if (!item) return ui.notifications.warn(`Your controlled Actor does not have an item named ${itemName}`);
+  if (!item)
+    return ui.notifications.warn(`Your controlled Actor does not have an item named ${itemName}`);
   const dataset = prepareDatasetByTypeOfItem(item);
   actor.sheet._onRoll(dataset);
 }
 
-Hooks.on("renderChatMessage", (message, html, data) => Arm5eChatMessage.addChatListeners(message, html, data));
+async function setAuraValueForAllTokensInScene(value, type) {
+  // Store a flag with the current aura
+  game.scenes.viewed.setFlag("world", "aura_" + game.scenes.viewed.data._id, Number(value));
+  game.scenes.viewed.setFlag("world", "aura_type_" + game.scenes.viewed.data._id, Number(type));
+  modifyAuraActiveEffectForAllTokensInScene(game.scenes.viewed, value, type);
+}
 
-//Hooks.on("getSceneControlButtons", (buttons) => Arm5eUI.dummyButton(buttons));
+function setAuraValueForToken(value, type) {
+  addActiveEffectAuraToActor(this, Number(value), Number(type));
+}
+
+async function resetTokenAuraToSceneAura() {
+  const aura = game.scenes.viewed.getFlag("world", "aura_" + game.scenes.viewed.data._id);
+  const type = game.scenes.viewed.getFlag("world", "aura_type_" + game.scenes.viewed.data._id);
+  if (aura !== undefined && !isNaN(aura) && type !== undefined && !isNaN(type)) {
+    addActiveEffectAuraToActor(this, Number(aura), Number(type));
+  }
+}
+
+function onDropOnCanvas(canvas, data) {
+  if (!canvas.scene.active) {
+    return;
+  }
+  const aura = game.scenes.viewed.getFlag("world", "aura_" + game.scenes.viewed.data._id);
+  const type = game.scenes.viewed.getFlag("world", "aura_type_" + game.scenes.viewed.data._id);
+  const actor = game.actors.get(data.id);
+  if (actor) {
+    if (aura !== undefined && !isNaN(aura) && type !== undefined && !isNaN(type)) {
+      addActiveEffectAuraToActor(actor, Number(aura), Number(type));
+    } else {
+      // reset aura for actor, if it was in another scene.
+      clearAuraFromActor(token.actor);
+    }
+  }
+}
+
+Hooks.on("renderChatMessage", (message, html, data) =>
+  Arm5eChatMessage.addChatListeners(message, html, data)
+);
+
+Hooks.on("deleteToken", (token, options, userId) => {
+  // if the token is linked to an actor, remove the aura
+  if (token.isLinked) {
+    clearAuraFromActor(token.actor);
+  }
+});
+
+Hooks.on("getSceneControlButtons", (buttons) => addArsButtons(buttons));

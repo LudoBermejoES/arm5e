@@ -1,6 +1,6 @@
-import { log } from "../tools.js";
+import { compareLabTextsData, log, hermeticFilter } from "../tools.js";
 import { ArM5eActorSheet } from "./actor-sheet.js";
-
+import { HERMETIC_FILTER } from "../constants/userdata.js";
 import { effectToLabText, resetOwnerFields } from "../item/item-converter.js";
 
 /**
@@ -37,7 +37,25 @@ export class ArM5eCovenantActorSheet extends ArM5eActorSheet {
     // editable, the items array, and the effects array.
     const context = super.getData();
 
-    context.metadata = CONFIG.ARM5E;
+    let usercache = JSON.parse(sessionStorage.getItem(`usercache-${game.user.id}`));
+    if (usercache[this.actor.id]) {
+      context.userData = usercache[this.actor.id];
+    } else {
+      usercache[this.actor.id] = {
+        filters: {
+          hermetic: {
+            laboratoryTexts: HERMETIC_FILTER
+          },
+          books: {
+            hermetic: { art: "", score: 0, quality: 0 },
+            mundane: { art: "", score: 0, quality: 0 }
+          }
+        }
+      };
+      context.userData = usercache[this.actor.id];
+      sessionStorage.setItem(`usercache-${game.user.id}`, JSON.stringify(usercache));
+    }
+    context.config = CONFIG.ARM5E;
     log(false, "Covenant-sheet getData");
     log(false, context);
     context.data.world = {};
@@ -96,16 +114,52 @@ export class ArM5eCovenantActorSheet extends ArM5eActorSheet {
       }
     }
 
+    // hermetic filters
+    // 1. Filter
+    //
+    let labtTextFilters = context.userData.filters.hermetic.laboratoryTexts;
+    // if (!labtTextFilters) {
+    //   labtTextFilters = { formFilter: "", levelFilter: "", levelOperator: 0, techniqueFilter: "" };
+    // }
+    context.ui = {};
+    context.data.laboratoryTexts = hermeticFilter(labtTextFilters, context.data.laboratoryTexts);
+    if (labtTextFilters.expanded) {
+      context.ui.labtTextFilterVisibility = "";
+    } else {
+      context.ui.labtTextFilterVisibility = "hidden";
+    }
+    if (
+      labtTextFilters.formFilter != "" ||
+      labtTextFilters.techniqueFilter != "" ||
+      (labtTextFilters.levelFilter != 0 && labtTextFilters.levelFilter != null)
+    ) {
+      context.ui.labTextFilter = 'style="text-shadow: 0 0 5px maroon"';
+    }
+    // 2. Sort
+    context.data.laboratoryTexts = context.data.laboratoryTexts.sort(compareLabTextsData);
+
     return context;
   }
 
-  isItemDropAllowed(type) {
-    switch (type) {
+  isItemDropAllowed(itemData) {
+    switch (itemData.type) {
+      case "virtue":
+      case "flaw":
+        switch (itemData.data.type.value) {
+          case "covenantSite":
+          case "covenantResources":
+          case "covenantResidents":
+          case "covenantExternalRelations":
+          case "covenantSurroundings":
+          case "generic": // base covenant hooks/boons
+          case "other":
+            return true;
+          default:
+            return false;
+        }
       case "spell":
       case "vis":
       case "book":
-      case "virtue":
-      case "flaw":
       case "magicItem":
       case "reputation":
       case "habitantMagi":
@@ -258,7 +312,10 @@ export class ArM5eCovenantActorSheet extends ArM5eActorSheet {
         itemData[0]._id = comp[0]._id;
         return await this.actor.updateEmbeddedDocuments("Item", itemData, {});
       }
-    } else if (actor._isGrog() || (actor.data.type == "npc" && actor.data.data.charType.value == "mundane")) {
+    } else if (
+      actor._isGrog() ||
+      (actor.data.type == "npc" && actor.data.data.charType.value == "mundane")
+    ) {
       let pts = 1;
       // if (targetActor.data.data.season == "summer" || targetActor.data.data.season == "autumn") {
       //     pts = 5;
@@ -292,8 +349,8 @@ export class ArM5eCovenantActorSheet extends ArM5eActorSheet {
           type: "labCovenant",
           data: {
             owner: actor.data.data.owner.value,
-            quality: actor.data.data.generalQuality.value,
-            upkeep: actor.data.data.maintenance.value
+            quality: actor.data.data.generalQuality.total,
+            upkeep: actor.data.data.upkeep.total
           }
         }
       ];
