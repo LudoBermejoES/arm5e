@@ -23,6 +23,8 @@
 - Update of Spanish translation (by Teotimus)
 - Aura now impact unlinked tokens
 - Aura of a scene is applied to token on scene activation or if scene is active
+- Powers integration in contests of magic
+- Beast sheets now also have a limited version
 
 ### Bug fixes
 
@@ -36,10 +38,10 @@
 - Tech debt: Cleaned up the Contest of magic feature code using ability key
 - Combat automation was not working with weapons in the macro bar (defaults to attack now)
 - Clarified Soak chat message details.
-- Linked actors which are dropped in multiple scenes with aura only get the modifier of the last one.
 - Aura modifier field won't appear in roll window if you already have an aura effect on going
 - Fatigue and wounds penalties only appear in roll dialog if they are non zero
 - Modifier for spell casting is again taken into account
+- Spells, Magical effects and powers dropped on the hot bar should work (again?)
 
 ## 1.4.3
 
