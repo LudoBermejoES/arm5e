@@ -7,17 +7,19 @@ const TYPE_OF_ROLL = {
   WEAPON: "weapon"
 };
 
+//TODO
 function getDatasetForAbility(item) {
   if (item?.data?.type !== TYPE_OF_ROLL.ABILITY) return {};
 
   return {
     roll: TYPE_OF_ROLL.ABILITY,
     ability: item.data._id,
-    defaultcharacteristicforability: item.data.data.defaultChaAb,
+    defaultCharacteristic: item.data.data.defaultChaAb,
     name: name
   };
 }
 
+//TODO
 function getDatasetForWeapon(item) {
   if (item?.data?.type !== TYPE_OF_ROLL.WEAPON) return {};
   if (!item.data.data.equiped) {
@@ -36,6 +38,7 @@ function getDatasetForWeapon(item) {
   };
 }
 
+//TODO
 function getDatasetForSpell(item, noCheck) {
   if (!noCheck && item?.data?.type !== TYPE_OF_ROLL.SPELL) return {};
 
@@ -43,9 +46,9 @@ function getDatasetForSpell(item, noCheck) {
     roll: TYPE_OF_ROLL.SPELL,
     id: item.data._id,
     technique: item.data.data.technique.value,
-    mform: item.data.data.form.value,
+    form: item.data.data.form.value,
     bonus: item.data.data.bonus,
-    bonus2: item.data.data.mastery,
+    mastery: item.data.data.mastery,
     bonusActiveEffects: item.actor.data.data.bonuses.arts.spellcasting,
     name: item.name,
     img: item.img
@@ -58,7 +61,7 @@ function getDatasetForMagic(item) {
     roll: TYPE_OF_ROLL.MAGIC,
     id: item.data._id,
     technique: item.data.data.technique.value,
-    mform: item.data.data.form.value,
+    form: item.data.data.form.value,
     bonus: item.data.data.bonus,
     bonusActiveEffects: item.actor.data.data.bonuses.arts.spellcasting,
     name: item.name,

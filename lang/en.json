@@ -38,6 +38,7 @@
   "arm5e.sheet.effect": "Effect",
   "arm5e.sheet.fatigue": "Fatigue",
   "arm5e.sheet.wounds": "Wounds",
+  "arm5e.sheet.vitals": "Vitals",
   "arm5e.sheet.biography": "Biography",
   "arm5e.sheet.personality": "Personality traits",
   "arm5e.sheet.personalityLab": "Personality",
@@ -102,8 +103,11 @@
   "arm5e.sheet.duration": "Duration",
   "arm5e.sheet.target": "Target",
   "arm5e.sheet.creator": "Creator",
-  "arm5e.sheet.bonus": "Bonus",
+  "arm5e.sheet.bonus.label": "Bonus",
+  "arm5e.sheet.bonusDesc": "Bonus description",
+  "arm5e.sheet.bonuses.label": "Bonuses",
   "arm5e.sheet.castingTotal": "Casting total",
+  "arm5e.sheet.castingTotals": "Casting totals",
   "arm5e.sheet.mastery": "Mastery",
   "arm5e.sheet.masteryAbilities": "Mastery abilities",
   "arm5e.sheet.source.label": "Source",
@@ -111,7 +115,7 @@
   "arm5e.sheet.quality": "Quality",
   "arm5e.sheet.protection": "Protection",
   "arm5e.sheet.fullSet": "Full Set",
-  "arm5e.sheet.foco": "Focus",
+  "arm5e.sheet.focus": "Focus",
   "arm5e.sheet.uses": "Uses",
   "arm5e.sheet.familiar": "Familiar",
   "arm5e.sheet.cord": "Cords",
@@ -201,6 +205,7 @@
   "arm5e.sheet.might": "Might",
   "arm5e.sheet.powers": "Powers",
   "arm5e.sheet.modifier": "Modifier",
+  "arm5e.sheet.divider": "Divider",
   "arm5e.sheet.advantage": "Advantage",
 
   "arm5e.sheet.yearBorn": "Year Born",
@@ -824,6 +829,8 @@
   "arm5e.sheet.activeEffect.types.realmAlignment": "Realm alignment",
 
   "arm5e.sheet.activeEffect.subtypes.none": "None",
+  "arm5e.sheet.activeEffect.subtypes.fatigueTotal": "Fatigue total",
+  "arm5e.sheet.activeEffect.subtypes.woundsTotal": "Wounds total",
 
   "arm5e.sheet.activeEffect.bonuses.penetration": "Penetration bonus",
 
