@@ -1,5 +1,24 @@
 # Release Notes
 
+## 1.4.5
+
+### Features
+
+- Compacted GM private rolls to take less space in the chat
+- Clicking on a non-rollable item put in the macro bar will open its sheet
+- Adventuring seasonal activities
+- Aging roll effects can be rollbacked
+- New custom pause icon by @Sylph
+- Update of French verison (by Lanneval and Nono)
+- Some redesign of the UI to have a more unified medieval flavor (by @Sylph)
+- Rearranged languague mnemonics of common usage into a generic category (the older ones will be keep for a few versions to allow translators to catch up)
+- New active effects for source quality modifiers of seasonal activities
+
+### Bug fixes
+
+- Fixed mnemonic for default characteristic in ability sheet
+- Fixed a bug for migration of legacy auras.
+
 ## 1.4.4
 
 ### Features
@@ -30,7 +49,9 @@
 - New field in spell sheet to describe the bonus
 - New sub-tab for casting totals
 - New field for spell bonus description
-- Combat section moved after wound and fatigue
+- Combat section moved after wounds and fatigue
+- Entities now have a associated form
+- New client setting to ask for confirmation when deleting an owned item
 
 ### Bug fixes
 
@@ -52,6 +73,7 @@
 - Parma magica speciality is now taken into account in magic contests
 - Free form spontaneous magic takes the correct arts score if you change them in the roll dialog
 - Characteristic rolls don't select the first ability with 0 score instead of "None".
+- NPC rolls results are only visible for the GM
 
 ## 1.4.3
 

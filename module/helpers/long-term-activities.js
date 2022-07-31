@@ -56,7 +56,7 @@ export async function applyAgingEffects(html, actor, roll, message) {
   resultAging.year = dialogData.year;
   resultAging.roll = { formula: roll._formula, result: roll.result };
 
-  createDiaryEntry(actor, resultAging);
+  createAgingDiaryEntry(actor, resultAging);
 }
 
 export async function agingCrisis(html, actor, roll, message) {
@@ -81,7 +81,7 @@ export async function agingCrisis(html, actor, roll, message) {
   await actor.update({ data: { pendingCrisis: false } }, {});
 }
 
-async function createDiaryEntry(actor, input) {
+async function createAgingDiaryEntry(actor, input) {
   let desc =
     game.i18n.localize("arm5e.aging.result0") +
     "<br/>" +
@@ -132,4 +132,182 @@ async function createDiaryEntry(actor, input) {
   };
 
   await actor.createEmbeddedDocuments("Item", [diaryEntry], {});
+}
+// ********************
+// Progress activities
+// ********************
+
+function genericValidationOfActivity(context) {}
+
+function checkForDuplicates(param, context, array) {
+  // look for duplicates
+  let ids = array.map(e => {
+    return e.id;
+  });
+  if (
+    ids.some(e => {
+      return ids.indexOf(e) !== ids.lastIndexOf(e);
+    })
+  ) {
+    context.data.applyPossible = "disabled";
+    context.data.errorParam = param;
+    context.data.applyError = "arm5e.activity.msg.duplicates";
+  }
+}
+
+function checkArtProgressItems(context, itemData, max) {
+  // look for duplicates arts
+  let artsArr = Object.values(itemData.data.progress.arts);
+  let artsKeys = artsArr.map(e => {
+    return e.key;
+  });
+  if (
+    artsKeys.some(e => {
+      return artsKeys.indexOf(e) !== artsKeys.lastIndexOf(e);
+    })
+  ) {
+    context.data.applyPossible = "disabled";
+    context.data.applyError = "arm5e.activity.msg.duplicates";
+    context.data.errorParam = "arts";
+  }
+  let res = 0;
+  for (const a of artsArr) {
+    if (a.xp < 0 || a.xp > max) {
+      context.data.applyPossible = "disabled";
+      context.data.applyError = "arm5e.activitymsg.wrongSingleItemXp";
+      context.data.errorParam = max;
+      return 0;
+    }
+    res += a.xp;
+  }
+  return res;
+}
+
+// return the total xp
+function checkMaxXpPerItem(context, array, max) {
+  let res = 0;
+  for (const ab of array) {
+    if (ab.xp < 0 || ab.xp > max) {
+      context.data.applyPossible = "disabled";
+      context.data.applyError = "arm5e.activity.msg.wrongSingleItemXp";
+      context.data.errorParam = max;
+      return 0;
+    }
+    res += ab.xp;
+  }
+  return res;
+}
+
+export function validAdventuring(context, actor, item) {
+  const itemData = item.data;
+  context.data.totalXp = { abilities: 0, arts: 0, spells: 0 };
+
+  let abilitiesArr = Object.values(itemData.data.progress.abilities);
+  checkForDuplicates("abilities", context, abilitiesArr);
+  context.data.totalXp.abilities = checkMaxXpPerItem(context, abilitiesArr, 5);
+
+  context.data.totalXp.arts += checkArtProgressItems(context, itemData, 5);
+
+  let spellsArr = Object.values(itemData.data.progress.spells);
+  checkForDuplicates("spells", context, spellsArr);
+  context.data.totalXp.spells = checkMaxXpPerItem(context, spellsArr, 5);
+
+  if (
+    context.data.totalXp.abilities + context.data.totalXp.arts + context.data.totalXp.spells !=
+    context.data.sourceQuality
+  ) {
+    context.data.applyPossible = "disabled";
+    if (context.data.applyError === "") context.data.applyError = "arm5e.activity.msg.wrongTotalXp";
+  }
+}
+
+export function validExposure(context, actor, item) {
+  const itemData = item.data;
+
+  context.data.totalXp = { abilities: 0, arts: 0, spells: 0 };
+
+  let abilitiesArr = Object.values(itemData.data.progress.abilities);
+  checkForDuplicates("abilities", context, abilitiesArr);
+  context.data.totalXp.abilities = checkMaxXpPerItem(context, abilitiesArr, 2);
+
+  context.data.totalXp.arts += checkArtProgressItems(context, itemData, 2);
+
+  let spellsArr = Object.values(itemData.data.progress.spells);
+  checkForDuplicates("spells", context, spellsArr);
+  context.data.totalXp.spells = checkMaxXpPerItem(context, spellsArr, 2);
+
+  if (
+    context.data.totalXp.abilities + context.data.totalXp.arts + context.data.totalXp.spells !=
+    context.data.sourceQuality
+  ) {
+    context.data.applyPossible = "disabled";
+    if (context.data.applyError === "") context.data.applyError = "arm5e.activity.msg.wrongTotalXp";
+  }
+}
+
+export function validPractice(context, actor, item) {
+  const itemData = item.data;
+  const activityConfig = CONFIG.ARM5E.activities.generic[context.data.activity];
+  context.data.totalXp = { abilities: 0, arts: 0, spells: 0 };
+
+  let abilitiesArr = Object.values(itemData.data.progress.abilities);
+  checkForDuplicates("abilities", context, abilitiesArr);
+  context.data.totalXp.abilities = checkMaxXpPerItem(
+    context,
+    abilitiesArr,
+    context.data.sourceQuality
+  );
+
+  let spellsArr = Object.values(itemData.data.progress.spells);
+  checkForDuplicates("spells", context, spellsArr);
+  context.data.totalXp.spells = checkMaxXpPerItem(context, spellsArr, context.data.sourceQuality);
+  let optionError = false;
+  if (itemData.data.optionKey == "language") {
+    if (spellsArr.length > 0) {
+      optionError = true;
+    } else {
+      const filteredArray = actor.data.data.abilities.filter(e => {
+        return abilitiesArr.some(filter => {
+          return (
+            filter.id === e._id && e.data.key != "livingLanguage" && e.data.key != "deadLanguage"
+          );
+        });
+      });
+      if (filteredArray.length > 0) {
+        optionError = true;
+      }
+    }
+  } else if (itemData.data.optionKey == "area") {
+    if (spellsArr.length > 0) {
+      optionError = true;
+    } else {
+      const filteredArray = actor.data.data.abilities.filter(e => {
+        return abilitiesArr.some(filter => {
+          return filter.id === e._id && e.data.key != "areaLore";
+        });
+      });
+      if (filteredArray.length > 0) {
+        optionError = true;
+      }
+    }
+  } else if (itemData.data.optionKey == "mastery") {
+    if (abilitiesArr.length > 0) {
+      optionError = true;
+    }
+  }
+  if (optionError === true) {
+    context.data.applyPossible = "disabled";
+    context.data.errorParam = game.i18n.localize(
+      activityConfig.bonusOptions[itemData.data.optionKey].label
+    );
+    context.data.applyError = "arm5e.activity.msg.wrongOption";
+  }
+
+  if (
+    context.data.totalXp.abilities + context.data.totalXp.arts + context.data.totalXp.spells !=
+    context.data.sourceQuality
+  ) {
+    context.data.applyPossible = "disabled";
+    if (context.data.applyError === "") context.data.applyError = "arm5e.activity.msg.wrongTotalXp";
+  }
 }

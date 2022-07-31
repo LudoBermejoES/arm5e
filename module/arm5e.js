@@ -136,6 +136,14 @@ Hooks.once("init", async function() {
     default: "PLAYERS_ONLY"
   });
 
+  game.settings.register("arm5e", "confirmDelete", {
+    name: "Ask for confirmation when deleting an owned item",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
   CONFIG.Canvas.layers["arsmagica"] = {
     layerClass: ArsLayer,
     group: "primary"
@@ -430,7 +438,9 @@ function rollItemMacro(itemId, actorId) {
   if (!item)
     return ui.notifications.warn(`Your controlled Actor does not have an item named ${itemName}`);
   const dataset = prepareDatasetByTypeOfItem(item);
-  if (item.data.type == "power") {
+  if (isObjectEmpty(dataset)) {
+    item.sheet.render(true);
+  } else if (item.data.type == "power") {
     actor.sheet._onUsePower(dataset);
   } else {
     actor.sheet._onRoll(dataset);
@@ -486,3 +496,13 @@ Hooks.on("deleteToken", (token, options, userId) => {
 });
 
 Hooks.on("getSceneControlButtons", buttons => addArsButtons(buttons));
+
+Hooks.on("renderPause", function() {
+  if ($("#pause").attr("class") !== "paused") return;
+  const path = "/systems/arm5e/assets/clockwork.svg";
+  // const opacity = 100
+  const speed = "20s linear 0s infinite normal none running rotation";
+  const opacity = 0.6;
+  $("#pause.paused img").attr("src", path);
+  $("#pause.paused img").css({ opacity: opacity, "-webkit-animation": speed });
+});

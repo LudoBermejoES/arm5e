@@ -8,12 +8,21 @@ export function addChatListeners(message, html, data) {
     return;
   }
 
+  const tokenName = actor.data.token.name;
+  let actorImg = actor.img;
+  if (actor.data.token.img != undefined) {
+    actorImg = actor.data.token.img;
+  }
   const msgTitle = html.find(".message-sender");
+  // is there a better way?
+  let text = msgTitle.text();
+  text = text.replace("Gamemaster", tokenName);
+  msgTitle.text(text);
   const actorFace = $(
-    `<div class="item-image flex01"><img src="${actor.img}" title="${actor.name}" width="30" height="30">`
+    `<div class="item-image flex01"><img src="${actorImg}" title="${tokenName}" width="30" height="30">`
   );
-  msgTitle.prepend(actorFace);
 
+  msgTitle.prepend(actorFace);
   let actorId = data.message.speaker.actor;
   const originatorOrGM =
     game.users.get(game.userId).isGM || game.users.get(game.userId).data.character == actorId;
@@ -25,6 +34,11 @@ export function addChatListeners(message, html, data) {
     });
   } else {
     html.find(".clickable").remove();
+
+    if (actor.data.type != "player") {
+      html.find(".dice-result").remove();
+      return;
+    }
   }
 
   if (!message.isRoll) return;

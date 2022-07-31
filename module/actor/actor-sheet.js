@@ -305,9 +305,9 @@ export class ArM5eActorSheet extends ActorSheet {
         ) {
           context.ui.magicEffectFilter = 'style="text-shadow: 0 0 5px maroon"';
         }
-        // 2. Sort
-        context.data.spells = context.data.spells.sort(compareSpellsData);
-        context.data.magicalEffects = context.data.magicalEffects.sort(compareMagicalEffectsData);
+        // 2. Sort (not needed since done in prepareData?)
+        // context.data.spells = context.data.spells.sort(compareSpellsData);
+        // context.data.magicalEffects = context.data.magicalEffects.sort(compareMagicalEffectsData);
 
         // magic arts
         for (let [key, technique] of Object.entries(context.data.arts.techniques)) {
@@ -407,6 +407,14 @@ export class ArM5eActorSheet extends ActorSheet {
           ab.ui = { style: 'style="box-shadow: 0 0 10px blue"', title: "" };
         } else {
           ab.ui = { style: 'style="box-shadow: 0 0 10px purple"', title: "Affinity, " };
+        }
+      }
+
+      for (let [key, entry] of Object.entries(context.data.diaryEntries)) {
+        if (entry.data.applied || entry.data.activity == "none") {
+          entry.ui = { diary: 'style="font-style: normal;"' };
+        } else {
+          entry.ui = { diary: 'style="font-style: italic;"' };
         }
       }
 
@@ -598,31 +606,54 @@ export class ArM5eActorSheet extends ActorSheet {
       ]);
     });
 
-    // Delete Inventory Item
-    html.find(".item-delete").click(ev => {
+    // Delete Inventory Item, optionally ask for confirmation
+    html.find(".item-delete").click(async ev => {
+      ev.preventDefault();
       const li = $(ev.currentTarget).parents(".item");
       let itemId = li.data("itemId");
       itemId = itemId instanceof Array ? itemId : [itemId];
-      this.actor.deleteEmbeddedDocuments("Item", itemId, {});
-      li.slideUp(200, () => this.render(false));
+      if (game.settings.get("arm5e", "confirmDelete")) {
+        const question = game.i18n.localize("arm5e.dialog.delete-question");
+        await Dialog.confirm(
+          {
+            title: `${li[0].dataset.name}`,
+            content: `<p>${question}</p>`,
+            yes: () => {
+              itemId = itemId instanceof Array ? itemId : [itemId];
+              this.actor.deleteEmbeddedDocuments("Item", itemId, {});
+              li.slideUp(200, () => this.render(false));
+            },
+            no: () => null
+          },
+          {
+            rejectClose: true
+          }
+        );
+      } else {
+        this.actor.deleteEmbeddedDocuments("Item", itemId, {});
+        li.slideUp(200, () => this.render(false));
+      }
     });
 
+    // Delete Inventory Item and always ask for confirmation
     html.find(".item-delete-confirm").click(async event => {
       event.preventDefault();
       const question = game.i18n.localize("arm5e.dialog.delete-question");
       const li = $(event.currentTarget).parents(".item");
       let itemId = li.data("itemId");
-      await Dialog.confirm({
-        title: `${li[0].dataset.name}`,
-        content: `<p>${question}</p>`,
-        yes: () => {
-          itemId = itemId instanceof Array ? itemId : [itemId];
-          this.actor.deleteEmbeddedDocuments("Item", itemId, {});
-          li.slideUp(200, () => this.render(false));
+      await Dialog.confirm(
+        {
+          title: `${li[0].dataset.name}`,
+          content: `<p>${question}</p>`,
+          yes: () => {
+            itemId = itemId instanceof Array ? itemId : [itemId];
+            this.actor.deleteEmbeddedDocuments("Item", itemId, {});
+            li.slideUp(200, () => this.render(false));
+          },
+          no: () => null
         },
-        no: () => null,
-        rejectClose: true
-      });
+        { rejectClose: true }
+      );
     });
 
     // Generate abilities automatically

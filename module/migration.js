@@ -163,11 +163,15 @@ export const migrateCompendium = async function(pack) {
  */
 export const migrateSceneData = function(scene, migrationData) {
   if (scene?.flags?.world) {
-    const aura = scene.flags.world[`aura_${scene.data._id}`];
-    const type = scene.flags.world[`aura_type_${scene.data._id}`];
+    let updateData = {};
+    const aura = scene.flags.world[`aura_${scene._id}`];
+    const type = scene.flags.world[`aura_type_${scene._id}`];
     if (aura && !type) {
       log(false, "Missing aura type");
+
+      updateData[`data.flags.world.aura_type_${scene._id}`] = 1;
     }
+    return updateData;
   }
 
   const tokens = scene.tokens.map(token => {
@@ -253,7 +257,7 @@ export const migrateActorData = function(actorData) {
     return updateData;
   }
 
-  updateData["data.version"] = "0.3";
+  updateData["data.version"] = "1.4.5";
 
   // token with barely anything to migrate
   if (actorData.data == undefined) {
@@ -326,8 +330,8 @@ export const migrateActorData = function(actorData) {
       actorData.data.decrepitude = {};
     }
 
-    if (this.data.data.realmAlignment == undefined) {
-      this.data.data.realmAlignment = 0;
+    if (actorData.data.realmAlignment == undefined) {
+      actorData.data.realmAlignment = 0;
     }
     // remove garbage stuff if it exists
 
@@ -339,6 +343,16 @@ export const migrateActorData = function(actorData) {
     updateData["data.-=qik"] = null;
     updateData["data.-=cha"] = null;
     updateData["data.-=com"] = null;
+
+    if (actorData.data.pendingXP != undefined && actorData.data.pendingXP > 0) {
+      ChatMessage.create({
+        content:
+          "<b>MIGRATION NOTIFICATION</b><br/>" +
+          `The field "Pending experience" has been repurposed for the new long term activities feature. ` +
+          `This is a one time notification that <b>the character ${actorData.name} had ${actorData.data.pendingXP} xps pending.</b>`
+      });
+      updateData["data.-=pendingXP"] = null;
+    }
   } else {
     updateData["data.-=roll"] = null;
   }
@@ -577,7 +591,7 @@ export const migrateActiveEffectData = function(effectData) {
 
 export const migrateItemData = function(itemData) {
   const updateData = {};
-  updateData["data.version"] = "1.3.2";
+  updateData["data.version"] = "1.4.5";
 
   //
   // migrate abilities xp
@@ -730,6 +744,25 @@ export const migrateItemData = function(itemData) {
   // Fix type of Item
   if (itemData.type == "dairyEntry") {
     updateData["type"] = "diaryEntry";
+
+    if (itemData.data.progress == undefined || isObjectEmpty(itemData.data.progress)) {
+      updateData["data.progress"] = { abilities: [], spells: [], arts: [] };
+    }
+  } else if (itemData.type == "diaryEntry") {
+    if (itemData.data.progress == undefined || isObjectEmpty(itemData.data.progress)) {
+      updateData["data.progress"] = { abilities: [], spells: [], arts: [] };
+    }
+
+    if (itemData.data.sourceQuality == undefined || isNaN(itemData.data.sourceQuality)) {
+      updateData["data.sourceQuality"] = 0;
+    }
+    if (itemData.data.activity === "") {
+      updateData["data.activity"] = "none";
+    }
+
+    if (itemData.data.optionkey == undefined) {
+      itemData.data.optionkey = "standard";
+    }
   }
 
   if (itemData.type == "might") {

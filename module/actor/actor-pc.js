@@ -101,6 +101,14 @@ export class ArM5ePCActor extends Actor {
     }
 
     this.data.data.bonuses.traits = { soak: 0, aging: 0, wounds: 0, fatigue: 0 };
+
+    this.data.data.bonuses.activities = {
+      practice: 0,
+      training: 0,
+      teaching: 0,
+      teacher: 0,
+      reading: 0
+    };
   }
 
   /** @override */
@@ -180,6 +188,7 @@ export class ArM5ePCActor extends Actor {
     let diaryEntries = [];
     let abilitiesFamiliar = [];
     let powersFamiliar = [];
+    let pendingXps = 0;
 
     let soak = actorData.data.characteristics.sta.value + actorData.data.bonuses.traits.soak;
 
@@ -422,6 +431,21 @@ export class ArM5ePCActor extends Actor {
       // ugly fix, but I don't know how to do better since prepare data is called before migration
       // to be removed when we break backward compatibility with 0.7
       else if (i.type === "diaryEntry" || i.type === "dairyEntry") {
+        const activityConfig = CONFIG.ARM5E.activities.generic[i.data.activity];
+        if (activityConfig.source.readonly) {
+          i.data.sourceQuality = activityConfig.source.default;
+          if (activityConfig.bonusOptions != null) {
+            i.data.sourceQuality += activityConfig.bonusOptions[i.data.optionKey].modifier;
+          }
+        }
+        if (this.data.data.bonuses.activities[i.data.activity] !== undefined) {
+          i.data.aeBonus = this.data.data.bonuses.activities[i.data.activity];
+          i.data.sourceQuality += i.data.aeBonus;
+        }
+
+        if (!i.data.applied) {
+          pendingXps += i.data.sourceQuality;
+        }
         diaryEntries.push(i);
       } else if (i.type === "abilityFamiliar") {
         abilitiesFamiliar.push(i);
@@ -634,7 +658,7 @@ export class ArM5ePCActor extends Actor {
     actorData.data.totalVirtues = totalVirtues;
     actorData.data.totalFlaws = totalFlaws;
     actorData.data.totalXPSpells = totalXPSpells;
-
+    actorData.data.pendingXps = pendingXps;
     if (actorData.data.weapons) {
       actorData.data.weapons = weapons;
       actorData.data.combat = combat;
@@ -643,10 +667,11 @@ export class ArM5ePCActor extends Actor {
       actorData.data.armor = armor;
     }
     if (actorData.data.spells) {
-      actorData.data.spells = spells;
+      // actorData.data.spells = spells;
+      actorData.data.spells = spells.sort(compareSpellsData);
     }
     if (actorData.data.magicalEffects) {
-      actorData.data.magicalEffects = magicalEffects;
+      actorData.data.magicalEffects = magicalEffects.sort(compareMagicalEffectsData);
     }
 
     if (actorData.data.vitals.soa) {
@@ -1248,7 +1273,7 @@ export class ArM5ePCActor extends Actor {
         updateData["data.decrepitude.points"] = this.data.data.decrepitude.points + 1;
         result.decrepitude = 1;
         result.charac[char1] = { aging: 1 };
-
+        // number of Aging Points greater than the absolute value of the Characteristic
         if (
           Math.abs(this.data.data.characteristics[char1].value) <
           this.data.data.characteristics[char1].aging + 1
@@ -1258,6 +1283,7 @@ export class ArM5ePCActor extends Actor {
           updateData[`data.characteristics.${char1}.aging`] = 0;
           result.charac[char1].score = -1;
         } else {
+          // aging points still lesser or equal than absolute value of characteristic score.
           updateData[`data.characteristics.${char1}.aging`] =
             this.data.data.characteristics[char1].aging + 1;
         }
@@ -1352,7 +1378,7 @@ export class ArM5ePCActor extends Actor {
         });
       }
     } catch (err) {
-      err.message = `Failed system migration for Actor ${a.name}: ${err.message}`;
+      err.message = `Failed system migration for Actor ${this.name}: ${err.message}`;
       console.error(err);
     }
   }
