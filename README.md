@@ -4,6 +4,13 @@ This is a Foundry VTT system for Ars Magica 5th Edition.
 
 This package is intended to enable Ars Magica play using Foundry VTT. In order to play, official Ars Magica materials are still required. Official material for Ars Magica 5th edition is published by and may be purchased from Atlas Games (https://atlas-games.com).
 
+
+[Magus sheet](./website/img/MagusSheet.png)
+
+[Companion sheet](./website/img/Companion_sheet.png) 
+
+[Spell sheet](./website/img/SpellSheet.png)
+
 Ars Magica content is copyright Trident, Inc d/b/a Atlas Games. Ars Magica, Mythic Europe, and Covenants are trademarks of Trident, Inc. Order of Hermes and Tremere are trademarks of White Wolf, Inc. USED WITH PERMISSION.
 
 The use and inclusion of the logo, icon and art elements, as well as the use of terms, has been expressly authorized in written form by Holocubierta Ediciones, S.L. (https://www.holocubierta.com/), the licensee of the game Ars Magica 5th Edition for its publication in Spanish.
@@ -16,11 +23,15 @@ Thanks to various contributors at https://game-icons.net for some default icons
 
 ![Latest Release Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/latest/arm5e.zip)
 
+![Release 2.0.1.0 Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/v2.0.1.0/arm5e.zip)
+
+![Release 1.4.7 Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/v1.4.7/arm5e.zip)
+
+![Release 1.4.5 Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/v1.4.5/arm5e.zip)
+
+![Release 1.4.4 Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/v1.4.4/arm5e.zip)
+
 ![Release 1.4.3 Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/v1.4.3/arm5e.zip)
-
-![Release 1.4.2 Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/v1.4.2/arm5e.zip)
-
-![Release 1.4.1 Download Count](https://img.shields.io/github/downloads/Xzotl42/arm5e/v1.4.1/arm5e.zip)
 
 ![Foundry Core Compatible Version](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fraw.githubusercontent.com%2FXzotl42%2Farm5e%2Fmaster%2Fsystem.json&label=Foundry%20Version&query=$.compatibleCoreVersion&colorB=orange)
 

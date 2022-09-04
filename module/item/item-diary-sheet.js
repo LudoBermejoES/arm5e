@@ -1,5 +1,6 @@
-import { log } from "../tools.js";
+import { debug, log } from "../tools.js";
 import { ArM5eItemSheet } from "./item-sheet.js";
+import { getNewTitleForActivity } from "../helpers/long-term-activities.js";
 
 /**
  * Extend the basic ItemSheet with some very simple modifications
@@ -12,7 +13,7 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
       classes: ["arm5e", "sheet", "item"],
       width: 654,
       height: 850,
-      // dragDrop: [{dragSelector: ".item-list .item", dropSelector: null}],
+      dragDrop: [{ dragSelector: null, dropSelector: ".progress-teacher" }],
       tabs: [
         {
           navSelector: ".sheet-tabs",
@@ -28,25 +29,35 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
     });
   }
 
+  // TODOV10
+  async _onDrop(event) {
+    const data = TextEditor.getDragEventData(event);
+    if (data.type == "Actor") {
+      if (data.id == this.actor.id) {
+        ui.notifications.info(game.i18n.localize("arm5e.activity.msg.selfTeaching"));
+        return;
+      }
+      const actor = await Actor.implementation.fromDropData(data);
+      if (actor._isCharacter()) await this._setTeacher(actor);
+    }
+  }
   /* -------------------------------------------- */
 
   /** @override */
-  getData() {
-    // Retrieve the data structure from the base sheet. You can inspect or log
-    // the context variable to see the structure, but some key properties for
-    // sheets are the item object, the data object, whether or not it's
-    // editable, the items array, and the effects array.
-    const context = super.getData();
-    const itemData = context.item.data;
-    const actType = context.data.activity;
+  async getData() {
+    const context = await super.getData();
+    const itemData = this.item.toObject(false);
+    const actType = context.system.activity;
     if (this.actor == null || this.actor.type == "covenant" || this.actor.type == "laboratory") {
       context.ui.showTab = false;
-      context.data.disabled = "disabled";
+      context.system.disabled = "disabled";
       return context;
     }
 
-    if (itemData.data.year == "") {
-      itemData.data.year = this.actor.data.data.year.value;
+    if (itemData.system.year == "") {
+      // supposedly the first time a diary entry is created
+      context.system.year = this.actor.system.datetime.year;
+      context.system.season = this.actor.system.datetime.season;
     }
 
     const activityConfig = CONFIG.ARM5E.activities.generic[actType];
@@ -59,131 +70,382 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
     }
 
     // configuration
-
-    context.data.sourceBonus = 0;
+    let hasTeacher = actType == "training" || actType == "teaching";
+    context.system.sourceBonus = 0;
+    context.system.applied = itemData.system.applied;
     context.ui.showTab = true;
     context.ui.showLegacyXp = activityConfig.display.legacyXp;
     context.ui.showProgress = activityConfig.display.progress;
     context.ui.showAbilities = activityConfig.display.abilities;
     context.ui.showArts = activityConfig.display.arts;
     context.ui.showSpells = activityConfig.display.spells;
+
+    context.ui.showTeacher = hasTeacher;
     context.ui.editSource = true;
     context.ui.bonusOptions = false;
-    if (activityConfig.bonusOptions != null) {
+
+    if (activityConfig.source.readonly && !context.system.applied) {
+      context.system.sourceQuality = itemData.system.baseQuality;
+      context.ui.editSource = false;
+      context.system.sourceDefault = activityConfig.source.default;
+    }
+
+    if (activityConfig.bonusOptions != null && !context.system.applied) {
       context.ui.bonusOptions = true;
       context.bonusOptions = activityConfig.bonusOptions;
-      context.data.sourceBonus = activityConfig.bonusOptions[itemData.data.optionKey].modifier;
+      context.system.sourceBonus = activityConfig.bonusOptions[itemData.system.optionKey].modifier;
+      context.system.sourceQuality += context.system.sourceBonus;
+    }
+    context.system.aeBonus = 0;
+    if (this.actor.system.bonuses.activities[actType] !== undefined && !context.system.applied) {
+      context.system.aeBonus = this.actor.system.bonuses.activities[actType];
     }
 
-    // context.data.sourceQuality = context.data.sourceQuality + context.data.sourceBonus;
-    // context.aeBonus = this.actor.data.data.bonuses.activities[actType] ?? 0 : this.actor.data.data.bonuses.activities[actType]
-
-    if (activityConfig.source.readonly) {
-      context.ui.editSource = false;
-      context.data.sourceDefault = activityConfig.source.default;
-    }
     if (this.actor._isMagus()) {
       context.ui.showMagicProgress = true;
     }
 
-    if (!itemData.data.progress) {
-      context.data.progress = {};
+    if (!itemData.system.progress) {
+      context.system.progress = {};
     }
 
     // create the actor abilities tree
-    context.data.ownedAbilities = {};
-    context.data.defaultAbility = "";
-    context.data.defaultArt = "";
-    context.data.ownedSpells = {};
-    context.data.defaultSpell = "";
+    context.system.ownedAbilities = {};
+    context.system.defaultAbility = "";
+    context.system.teacherScore = 0;
+    context.system.ownedSpells = {};
+    context.system.defaultArt = "";
+    context.system.ownedArts = [];
+    context.system.defaultSpell = "";
 
-    context.data.applyPossible = "";
-    context.data.applyError = "";
+    context.system.applyPossible = "";
+    context.system.applyError = "";
 
-    context.data.canEdit = "";
-    context.data.disabled = "";
-    if (itemData.data.applied) {
-      context.data.canEdit = "readonly";
-      context.data.disabled = "disabled";
+    context.system.canEdit = "";
+    context.system.disabled = "";
+
+    context.system.canEditTeacher = "";
+    context.system.disabledTeacher = "";
+
+    if (itemData.system.applied) {
+      context.system.canEdit = "readonly";
+      context.system.canEditTeacher = "readonly";
+      context.system.disabledTeacher = "disabled";
+      context.system.disabled = "disabled";
+    }
+    context.system.cappedGain = false;
+    if (
+      context.system.theoriticalSource !== undefined &&
+      context.system.theoriticalSource !== context.system.sourceQuality
+    ) {
+      context.system.cappedGain = true;
+      context.system.applyError = "arm5e.activity.msg.gainCapped";
     }
 
-    if (activityConfig.validation != null) {
-      activityConfig.validation(context, this.actor, this.item);
-    }
+    context.system.teacherLinked = this.item.system.teacher.id !== null;
+    let teacher;
+    let availableAbilities = this.actor.system.abilities;
+    // additionnal filtering based on the teacher skills
+    if (hasTeacher) {
+      if (context.system.teacherLinked) {
+        context.system.canEditTeacher = "readonly";
+        context.system.disabledTeacher = "disabled";
+        // check trainer/teacher exists
+        teacher = game.actors.get(this.item.system.teacher.id);
+        if (teacher === undefined) {
+          context.system.canEdit = "readonly";
+          context.system.applyPossible = "disabled";
+          if (actType === "training") {
+            context.system.applyError = "arm5e.activity.msg.noTrainer";
+          } else {
+            context.system.applyError = "arm5e.activity.msg.noTeacher";
+          }
+          context.system.errorParam = "";
+          return context;
+        }
+        context.system.aeBonus += teacher.system.bonuses.activities.teacher;
+        context.teacherAbilities = teacher.system.abilities.filter(e => {
+          return e.system.finalScore >= 2;
+        });
+        availableAbilities = this.actor.system.abilities.filter(e => {
+          return context.teacherAbilities.some(filter => {
+            if (context.system.applied)
+              // for rollback, the item must still be there
+              return filter.system.key === e.system.key && filter.system.option === e.system.option;
+            else
+              return (
+                filter.system.key === e.system.key &&
+                filter.system.option === e.system.option &&
+                filter.system.finalScore > e.system.finalScore
+              );
+          });
+        });
+      } else {
+        if (itemData.system.teacher.score < 2) {
+          context.system.canEdit = "readonly";
+          context.system.applyPossible = "disabled";
+          context.system.applyError = "arm5e.activity.msg.uselessTeacher";
+          context.system.errorParam =
+            itemData.system.teacher.name === ""
+              ? game.i18n.localize("arm5e.activity.teacher.label")
+              : itemData.system.teacher.name;
+          return context;
+        }
+        availableAbilities = this.actor.system.abilities.filter(e => {
+          return e.system.finalScore < itemData.system.teacher.score;
+        });
+      }
 
+      // if teacher is not a Magus, he/she cannot teach spell masteries and arts
+      if (teacher !== undefined && !teacher._isMagus()) {
+        context.ui.showMagicProgress = false;
+      }
+    }
     let firstAb = true;
     // for each progressed ability, list the category and abilities available
-    for (const ability of this.actor.data.data.abilities) {
-      if (context.data.ownedAbilities[ability.data.category] == undefined)
-        context.data.ownedAbilities[ability.data.category] = [];
+    for (const ability of availableAbilities) {
+      let teacherScore = 0;
+      if (hasTeacher) {
+        if (itemData.system.teacher.id === null) {
+          teacherScore = itemData.system.teacher.score ?? 0;
+        } else {
+          let teacherAbility = context.teacherAbilities.find(e => {
+            return e.system.key === ability.system.key && e.system.option === ability.system.option;
+          });
+          teacherScore = teacherAbility.system.finalScore;
+        }
+      }
+      if (context.system.ownedAbilities[ability.system.category] == undefined)
+        context.system.ownedAbilities[ability.system.category] = [];
       let tmp = {
         id: ability._id,
-        category: ability.data.category,
+        category: ability.system.category,
         name: ability.name,
-        key: ability.data.key,
-        currentXp: ability.data.xp,
-        option: ability.data.option
+        key: ability.system.key,
+        currentXp: ability.system.xp,
+        score: ability.system.finalScore,
+        option: ability.system.option,
+        teacherScore: teacherScore
       };
       if (firstAb) {
-        let filteredList = Object.values(context.data.progress.abilities).filter(e => {
+        let filteredList = Object.values(context.system.progress.abilities).filter(e => {
           return e.id === ability._id;
         });
         if (
           // if ability doesn't exist in current items, set it as next default
           filteredList.length === 0
         ) {
-          context.data.defaultAbility = ability._id;
+          context.system.defaultAbility = ability._id;
+          context.system.teacherScore = teacherScore;
           firstAb = false;
         }
       }
-      context.data.ownedAbilities[ability.data.category].push(tmp);
+      context.system.ownedAbilities[ability.system.category].push(tmp);
     }
 
     if (context.ui.showMagicProgress) {
       // Arts
+      let availableArts = [];
+      if (hasTeacher) {
+        // get the arts the teacher is skilled enough in to teach
+        if (context.system.teacherLinked) {
+          let teacherTechniques = Object.entries(teacher.system.arts.techniques)
+            .filter(e => {
+              if (context.system.applied) {
+                return e[1].finalScore >= 5;
+              } else {
+                return (
+                  e[1].finalScore >= 5 &&
+                  e[1].finalScore > this.actor.system.arts.techniques[e[0]].finalScore
+                );
+              }
+            })
+            .map(e => {
+              return {
+                key: e[0],
+                label: CONFIG.ARM5E.magic.arts[e[0]].label,
+                score: this.actor.system.arts.techniques[e[0]].finalScore,
+                teacherScore: e[1].finalScore
+              };
+            });
+
+          let teacherForms = Object.entries(teacher.system.arts.forms)
+            .filter(e => {
+              if (context.system.applied) {
+                return e[1].finalScore >= 5;
+              } else {
+                return (
+                  e[1].finalScore >= 5 &&
+                  e[1].finalScore > this.actor.system.arts.forms[e[0]].finalScore
+                );
+              }
+            })
+            .map(e => {
+              return {
+                key: e[0],
+                label: CONFIG.ARM5E.magic.arts[e[0]].label,
+                score: this.actor.system.arts.forms[e[0]].finalScore,
+                teacherScore: e[1].finalScore
+              };
+            });
+
+          availableArts = teacherTechniques.concat(teacherForms);
+        } else {
+          let teacherScore = 0;
+          if (hasTeacher && itemData.system.teacher.id === null) {
+            teacherScore = itemData.system.teacher.score ?? 0;
+          }
+          if (teacherScore < 5) {
+            // must have a score of 5 to teach an Art
+            availableArts = [];
+          } else {
+            let actorTechniques = Object.entries(this.actor.system.arts.techniques).map(e => {
+              return {
+                key: e[0],
+                label: CONFIG.ARM5E.magic.arts[e[0]].label,
+                score: this.actor.system.arts.techniques[e[0]].finalScore,
+                teacherScore: teacherScore
+              };
+            });
+
+            let actorForms = Object.entries(this.actor.system.arts.forms).map(e => {
+              return {
+                key: e[0],
+                label: CONFIG.ARM5E.magic.arts[e[0]].label,
+                score: this.actor.system.arts.forms[e[0]].finalScore,
+                teacherScore: teacherScore
+              };
+            });
+
+            availableArts = actorTechniques.concat(actorForms);
+            availableArts = availableArts.filter(e => {
+              return e.score < itemData.system.teacher.score;
+            });
+          }
+        }
+      } else {
+        availableArts = [
+          ...Object.entries(this.actor.system.arts.techniques).map(e => {
+            return {
+              key: e[0],
+              score: e[1].finalScore,
+              label: CONFIG.ARM5E.magic.arts[e[0]].label,
+              teacherScore: 0
+            };
+          }),
+          ...Object.entries(this.actor.system.arts.forms).map(e => {
+            return {
+              key: e[0],
+              score: e[1].finalScore,
+              label: CONFIG.ARM5E.magic.arts[e[0]].label,
+              teacherScore: 0
+            };
+          })
+        ];
+      }
+
       let firstArt = true;
-      for (const key of Object.keys(CONFIG.ARM5E.magic.arts)) {
+      for (const art of Object.values(availableArts)) {
         if (firstArt) {
-          let filteredList = Object.values(context.data.progress.arts).filter(e => {
-            return e.key === key;
+          let filteredList = Object.values(context.system.progress.arts).filter(e => {
+            return e.key === art.key;
           });
           if (
             // if art doesn't exist in current items, set it as next default
             filteredList.length === 0
           ) {
-            context.data.defaultArt = key;
+            context.system.defaultArt = art.key;
+            context.system.teacherScore = art.teacherScore;
             firstArt = false;
           }
         }
+        context.system.ownedArts.push(art);
       }
       //spells
+
+      let availableSpells = this.actor.system.spells;
+      if (hasTeacher) {
+        if (context.system.teacherLinked) {
+          context.teacherMasteries = teacher.system.spells.filter(e => {
+            return e.system.mastery >= 2;
+          });
+          availableSpells = this.actor.system.spells.filter(e => {
+            return context.teacherMasteries.some(filter => {
+              if (context.system.applied) {
+                return (
+                  // for rollback, the item must still be there
+                  filter.system.key === e.system.key &&
+                  filter.name === e.name &&
+                  filter.system.technique === e.system.technique &&
+                  filter.system.form === e.system.form
+                );
+              } else {
+                return (
+                  filter.system.key === e.system.key &&
+                  filter.name === e.name &&
+                  filter.system.technique === e.system.technique &&
+                  filter.system.form === e.system.form &&
+                  filter.system.mastery > e.system.mastery
+                );
+              }
+            });
+          });
+        } else {
+          availableSpells = this.actor.system.spells.filter(e => {
+            return e.system.mastery < itemData.system.teacher.score;
+          });
+        }
+      }
       let firstSpell = true;
-      for (const spell of this.actor.data.data.spells) {
-        if (context.data.ownedSpells[spell.data.form.value] == undefined)
-          context.data.ownedSpells[spell.data.form.value] = [];
+      for (const spell of availableSpells) {
+        let teacherScore = 0;
+        if (hasTeacher) {
+          if (itemData.system.teacher.id === null) {
+            teacherScore = itemData.system.teacher.score ?? 0;
+          } else {
+            let teacherSpell = context.teacherSpells.find(e => {
+              return (
+                e.system.key === ability.system.key && e.system.option === ability.system.option
+              );
+            });
+            teacherScore = teacherSpell.system.mastery;
+          }
+        }
+        if (context.system.ownedSpells[spell.system.form.value] == undefined)
+          context.system.ownedSpells[spell.system.form.value] = [];
         let tmp = {
           id: spell._id,
-          form: spell.data.form.value,
+          form: spell.system.form.value,
           name: spell.name,
-          currentXp: spell.data.xp
+          currentXp: spell.system.xp,
+          score: spell.system.mastery,
+          teacherScore: teacherScore
         };
         if (firstSpell) {
-          let filteredList = Object.values(context.data.progress.spells).filter(e => {
+          let filteredList = Object.values(context.system.progress.spells).filter(e => {
             return e.id === spell._id;
           });
           if (
             // if spell doesn't exist in current items, set it as next default
             filteredList.length === 0
           ) {
-            context.data.defaultSpell = spell._id;
+            context.system.defaultSpell = spell._id;
+            context.system.teacherScore = teacherScore;
             firstSpell = false;
           }
         }
-        context.data.ownedSpells[spell.data.form.value].push(tmp);
+        context.system.ownedSpells[spell.system.form.value].push(tmp);
       }
     }
 
-    log(false, "item-diary-sheet get data");
+    if (!context.system.applied) {
+      context.system.sourceQuality += Number(context.system.aeBonus);
+    }
+    if (activityConfig.validation != null) {
+      activityConfig.validation(context, this.actor, this.item);
+    }
+
+    log(false, "ITEM-DIARY-sheet get data");
     log(false, context);
     return context;
   }
@@ -215,7 +477,29 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
     html.find(".progress-apply").click(this._onProgressApply.bind(this));
     html.find(".progress-rollback").click(this._onProgressRollback.bind(this));
     html.find(".progress-activity").change(this._setActivity.bind(this));
+    html.find(".progress-xp").change(this._setXp.bind(this));
+    html.find(".break-link").click(this._resetTeacher.bind(this));
+    html.find(".score-teacher").change(this._resetTeacher.bind(this));
     // html.find(".progress-bonus").change(this._setBonusOption.bind(this));
+  }
+
+  async _resetTeacher(event) {
+    const target = event.currentTarget;
+    if (target.dataset.applied == "true") {
+      return;
+    }
+    let updateData = {};
+    updateData["system.teacher.id"] = null;
+    updateData[`system.progress.abilities`] = [];
+    updateData[`system.progress.arts`] = [];
+    updateData[`system.progress.spells`] = [];
+    this.submit({ preventClose: true, updateData: updateData }).then(() => this.render());
+  }
+
+  async _setXp(event) {
+    event.preventDefault();
+    debug("set xp");
+    const target = event.currentTarget;
   }
 
   async _setActivity(event) {
@@ -224,24 +508,44 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
     const actType = $(target).val();
     // just reset some fields so the new default can be set
     let updateData = {};
-    updateData["data.sourceQuality"] = 0;
+    updateData["system.sourceQuality"] = 0;
     if (CONFIG.ARM5E.activities.generic[actType].display.abilities === false) {
-      updateData["data.progress.abilities"] = [];
+      updateData["system.progress.abilities"] = [];
     }
     if (CONFIG.ARM5E.activities.generic[actType].display.arts === false) {
-      updateData["data.progress.arts"] = [];
+      updateData["system.progress.arts"] = [];
     }
     if (CONFIG.ARM5E.activities.generic[actType].display.spells === false) {
-      updateData["data.progress.spells"] = [];
+      updateData["system.progress.spells"] = [];
+    }
+    updateData["system.sourceQuality"] = CONFIG.ARM5E.activities.generic[actType].source.default;
+    // core bug?
+    switch (actType) {
+      case "none":
+        this._tabs[0].activate("description");
+        break;
+      case "training":
+      case "teaching":
+        this._tabs[0].activate("advanced");
+        // this.render();
+        // this._tabs[1].activate("teacher");
+        break;
+      default:
+        this._tabs[0].activate("advanced");
+      // this.render();
+      // this._tabs[1].activate("abilities");
     }
     this.submit({ preventClose: true, updateData: updateData }).then(() => this.render());
   }
 
   async _onProgressApply(event) {
     event.preventDefault();
-    let description = this.item.data.data.description + "<h4>Technical part:<h4><ol>";
+    // this.render();
+    let description = this.item.system.description + "<h4>Technical part:<h4><ol>";
     let updateData = [];
-    for (const ab of Object.values(this.item.data.data.progress.abilities)) {
+    let sourceQuality = 0;
+
+    for (const ab of Object.values(this.item.system.progress.abilities)) {
       // ignore 0 xp gain
       if (ab.xp == 0) {
         continue;
@@ -256,17 +560,19 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
       }
       let data = {
         _id: ab.id,
-        data: {
-          xp: ability.data.data.xp + ab.xp
+        system: {
+          xp: ability.system.xp + ab.xp
         }
       };
       description += `<li>${game.i18n.format("arm5e.activity.descItem", {
         item: ability.name,
         xp: ab.xp
       })}</li>`;
+      log(false, `Added ${ab.xp} to ${ability.name}`);
+      sourceQuality += ab.xp;
       updateData.push(data);
     }
-    for (const s of Object.values(this.item.data.data.progress.spells)) {
+    for (const s of Object.values(this.item.system.progress.spells)) {
       // ignore 0 xp gain
       if (s.xp == 0) {
         continue;
@@ -281,19 +587,21 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
       }
       let data = {
         _id: s.id,
-        data: {
-          xp: spell.data.data.xp + s.xp
+        system: {
+          xp: spell.system.xp + s.xp
         }
       };
       description += `<li>${game.i18n.format("arm5e.activity.descItem", {
         item: spell.name,
         xp: s.xp
       })}</li>`;
+      log(false, `Added ${s.xp} to ${spell.name}`);
+      sourceQuality += s.xp;
       updateData.push(data);
     }
 
-    let actorUpdate = { data: { arts: { forms: {}, techniques: {} } } };
-    for (const a of Object.values(this.item.data.data.progress.arts)) {
+    let actorUpdate = { system: { arts: { forms: {}, techniques: {} } } };
+    for (const a of Object.values(this.item.system.progress.arts)) {
       // ignore 0 xp gain
       if (a.xp == 0) {
         continue;
@@ -302,30 +610,51 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
       if (Object.keys(CONFIG.ARM5E.magic.techniques).indexOf(a.key) == -1) {
         artType = "forms";
       }
-      actorUpdate.data.arts[artType][a.key] = {};
-      actorUpdate.data.arts[artType][a.key].xp =
-        this.actor.data.data.arts[artType][a.key].xp + a.xp;
+      actorUpdate.system.arts[artType][a.key] = {};
+      actorUpdate.system.arts[artType][a.key].xp = this.actor.system.arts[artType][a.key].xp + a.xp;
       description += `<li>${game.i18n.format("arm5e.activity.descItem", {
-        item: CONFIG.ARM5E.magic.arts[a.key].label,
+        item: game.i18n.localize(CONFIG.ARM5E.magic.arts[a.key].label),
         xp: a.xp
       })}</li>`;
+      log(false, `Added ${a.xp} to ${a.key}`);
+      sourceQuality += a.xp;
     }
     description += "</ol>";
+    let newTitle = getNewTitleForActivity(this.actor, this.item);
 
-    await this.actor.updateEmbeddedDocuments("Item", updateData, {});
-    await this.actor.update(actorUpdate, {});
-    await this.item.update({ data: { applied: true, description: description } });
+    await this.item.update(
+      {
+        name: newTitle,
+        system: {
+          applied: true,
+          description: description,
+          sourceQuality: sourceQuality,
+          progress: this.item.system.progress
+        }
+      },
+      { render: true }
+    );
+
+    await this.actor.updateEmbeddedDocuments("Item", updateData, { render: true });
+    await this.actor.update(actorUpdate, { render: true });
   }
 
   async _onProgressRollback(event) {
     event.preventDefault();
-    const actorData = this.actor.data;
+    // this.render();
+    const actor = this.actor;
     let updateData = [];
-    switch (this.item.data.data.activity) {
+    switch (this.item.system.activity) {
       case "adventuring":
       case "exposure":
-      case "practice": {
-        for (const ab of Object.values(this.item.data.data.progress.abilities)) {
+      case "practice":
+      case "training":
+      case "teaching":
+      case "hermeticApp":
+      case "childhood":
+      case "laterLife":
+      case "laterLifeMagi": {
+        for (const ab of Object.values(this.item.system.progress.abilities)) {
           // check that ability still exists
           let ability = this.actor.items.get(ab.id);
           if (ability == undefined) {
@@ -334,16 +663,17 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
             });
             continue;
           }
-          let xps = ability.data.data.xp - ab.xp;
+          let xps = ability.system.xp - ab.xp;
           let data = {
             _id: ab.id,
-            data: {
+            system: {
               xp: xps < 0 ? 0 : xps
             }
           };
+          log(false, `Removed ${ab.xp} from ${ability.name}`);
           updateData.push(data);
         }
-        for (const s of Object.values(this.item.data.data.progress.spells)) {
+        for (const s of Object.values(this.item.system.progress.spells)) {
           let spell = this.actor.items.get(s.id);
           if (spell == undefined) {
             ui.notifications.warn(game.i18n.localize("arm5e.activity.msg.spellMissing"), {
@@ -351,30 +681,31 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
             });
             continue;
           }
-          let xps = spell.data.data.xp - s.xp;
+          let xps = spell.system.xp - s.xp;
           let data = {
             _id: s.id,
-            data: {
+            system: {
               xp: xps < 0 ? 0 : xps
             }
           };
+          log(false, `Removed ${s.xp} from ${spell.name}`);
           updateData.push(data);
         }
-
-        let actorUpdate = { data: { arts: { forms: {}, techniques: {} } } };
-        for (const a of Object.values(this.item.data.data.progress.arts)) {
+        let actorUpdate = { system: { arts: { forms: {}, techniques: {} } } };
+        for (const a of Object.values(this.item.system.progress.arts)) {
           let artType = "techniques";
           if (Object.keys(CONFIG.ARM5E.magic.techniques).indexOf(a.key) == -1) {
             artType = "forms";
           }
 
-          let xps = actorData.data.arts[artType][a.key].xp - a.xp;
-          actorUpdate.data.arts[artType][a.key] = {};
-          actorUpdate.data.arts[artType][a.key].xp = xps < 0 ? 0 : xps;
+          let xps = actor.system.arts[artType][a.key].xp - a.xp;
+          log(false, `Removed ${a.xp} from ${a.key}`);
+          actorUpdate.system.arts[artType][a.key] = {};
+          actorUpdate.system.arts[artType][a.key].xp = xps < 0 ? 0 : xps;
         }
 
-        await this.actor.updateEmbeddedDocuments("Item", updateData, {});
-        await this.actor.update(actorUpdate, {});
+        await this.actor.update(actorUpdate, { render: true });
+        await this.actor.updateEmbeddedDocuments("Item", updateData, { render: true });
         break;
       }
       case "aging": {
@@ -397,52 +728,54 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
         );
         if (!confirmed) return;
         let actorUpdate = {
-          data: { age: { value: actorData.data.age.value - 1 }, pendingCrisis: false }
+          system: { age: { value: actor.system.age.value - 1 }, pendingCrisis: false }
         };
 
         let effects = this.item.getFlag("arm5e", "effect");
         if (effects.apparent) {
-          actorUpdate.data.apparent = { value: actorData.data.apparent.value - 1 };
+          actorUpdate.system.apparent = { value: actor.system.apparent.value - 1 };
         }
         if (effects.charac) {
-          actorUpdate.data.characteristics = {};
+          actorUpdate.system.characteristics = {};
         }
         for (let [char, stats] of Object.entries(effects.charac)) {
-          let newAgingPts = actorData.data.characteristics[char].aging - stats.aging;
-          let currentCharValue = actorData.data.characteristics[char].value;
+          let newAgingPts = actor.system.characteristics[char].aging - stats.aging;
+          let currentCharValue = actor.system.characteristics[char].value;
           if (stats.score) {
             // characteristic was reduced
-            actorUpdate.data.characteristics[char] = {
+            actorUpdate.system.characteristics[char] = {
               value: currentCharValue + 1,
               aging: Math.max(0, Math.abs(currentCharValue + 1) - stats.aging)
             };
           } else {
-            actorUpdate.data.characteristics[char] = {
+            actorUpdate.system.characteristics[char] = {
               value: currentCharValue + 1,
               aging: newAgingPts < 0 ? 0 : newAgingPts
             };
           }
         }
-        let newDecrepitude = actorData.data.decrepitude.points - effects.decrepitude;
-        actorUpdate.data.decrepitude = { points: newDecrepitude < 0 ? 0 : newDecrepitude };
+        let newDecrepitude = actor.system.decrepitude.points - effects.decrepitude;
+        actorUpdate.system.decrepitude = { points: newDecrepitude < 0 ? 0 : newDecrepitude };
         await this.actor.update(actorUpdate, {});
         await this.actor.deleteEmbeddedDocuments("Item", [this.item.id], {});
         return;
         break;
       }
     }
-    await this.item.update({ data: { applied: false } });
+    let description = this.item.system.description + "<h4>Rollbacked<h4>";
+    await this.item.update({ system: { applied: false, description: description } });
   }
 
   async _onProgressControl(event) {
     event.preventDefault();
     const button = event.currentTarget;
     // no edit possible if applied
-    if (button.dataset.applied == "true") {
+    if (button.dataset.applied == "true" || button.dataset.applied === true) {
       return;
     }
-    let currentData = Object.values(this.item.data.data.progress[button.dataset.type]) ?? [];
+    let currentData = Object.values(this.item.system.progress[button.dataset.type]) ?? [];
     let updateData = {};
+    // debug("ADD progress item");
     switch (button.dataset.type) {
       case "abilities": {
         switch (button.dataset.action) {
@@ -451,14 +784,16 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
             const newAb = this.actor.items.get(button.dataset.default);
             const data = {
               id: newAb.id,
-              category: newAb.data.data.category,
+              category: newAb.system.category,
               name: newAb.name,
-              currentXp: newAb.data.data.xp,
-              xpNextLevel: newAb.data.data.xpNextLevel,
+              currentXp: newAb.system.xp,
+              xpNextLevel: newAb.system.xpNextLevel,
+              teacherScore: button.dataset.teacherscore,
               xp: 0
             };
+
             currentData.push(data);
-            updateData[`data.progress.abilities`] = currentData;
+            updateData[`system.progress.abilities`] = currentData;
             // );
             await this.item.update(updateData, {});
             break;
@@ -466,7 +801,7 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
             const idx = Number(button.dataset.idx);
             currentData.splice(idx, 1);
             button.closest(".diary-progress").remove();
-            updateData[`data.progress.abilities`] = currentData;
+            updateData[`system.progress.abilities`] = currentData;
             await this.item.update(updateData, {});
             break;
           default:
@@ -478,17 +813,18 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
           case "add":
             const data = {
               key: button.dataset.default,
+              teacherScore: button.dataset.teacherscore,
               xp: 0
             };
             currentData.push(data);
-            updateData[`data.progress.arts`] = currentData;
+            updateData[`system.progress.arts`] = currentData;
             await this.item.update(updateData, {});
             break;
           case "delete":
             const idx = Number(button.dataset.idx);
             currentData.splice(idx, 1);
             button.closest(".diary-progress").remove();
-            updateData[`data.progress.arts`] = currentData;
+            updateData[`system.progress.arts`] = currentData;
             await this.item.update(updateData, {});
             break;
           default:
@@ -502,21 +838,21 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
             const newSpell = this.actor.items.get(button.dataset.default);
             const data = {
               id: newSpell.id,
-              form: newSpell.data.data.form.value,
+              form: newSpell.system.form.value,
               name: newSpell.name,
-              currentXp: newSpell.data.data.xp,
-              xpNextLevel: newSpell.data.data.experienceNextLevel,
+              currentXp: newSpell.system.xp,
+              xpNextLevel: newSpell.system.experienceNextLevel,
               xp: 0
             };
             currentData.push(data);
-            updateData[`data.progress.spells`] = currentData;
+            updateData[`system.progress.spells`] = currentData;
             await this.item.update(updateData, {});
             break;
           case "delete":
             const idx = Number(button.dataset.idx);
             currentData.splice(idx, 1);
             button.closest(".diary-progress").remove();
-            updateData[`data.progress.spells`] = currentData;
+            updateData[`system.progress.spells`] = currentData;
             await this.item.update(updateData, {});
             break;
           default:
@@ -526,6 +862,24 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
     }
   }
 
+  async _setTeacher(actor) {
+    log(false, "Dropped actor as teacher: " + actor);
+    let teaching = actor.getAbilityStats("teaching");
+    let updateData = {};
+    updateData["system.teacher"] = {
+      id: actor.id,
+      name: actor.name,
+      com: actor.system.characteristics.com.value,
+      teaching: teaching.score,
+      speciality: teaching.speciality,
+      score: 0
+    };
+    updateData[`system.progress.abilities`] = [];
+    updateData[`system.progress.arts`] = [];
+    updateData[`system.progress.spells`] = [];
+    return this.submit({ preventClose: true, updateData: updateData }).then(() => this.render());
+  }
+
   async _setCategory(event) {
     event.preventDefault();
     let updateData = {};
@@ -533,18 +887,17 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
     const idx = target.dataset.index;
     const value = $(target).val();
     const progressType = target.dataset.type;
-    let currentData = Object.values(this.item.data.data.progress[progressType]) ?? [];
-
+    let currentData = Object.values(this.item.system.progress[progressType]) ?? [];
     switch (progressType) {
       case "abilities":
-        currentData[idx] = this.item.data.data.ownedAbilities[value][0];
+        currentData[idx] = this.item.system.ownedAbilities[value][0];
         currentData[idx].xp = 0;
-        updateData[`data.progress.abilities`] = currentData;
+        updateData[`system.progress.abilities`] = currentData;
         break;
       case "spells":
-        currentData[idx] = this.item.data.data.ownedSpells[value][0];
+        currentData[idx] = this.item.system.ownedSpells[value][0];
         currentData[idx].xp = 0;
-        updateData[`data.progress.spells`] = currentData;
+        updateData[`system.progress.spells`] = currentData;
         break;
     }
 
@@ -557,18 +910,23 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
     const target = event.currentTarget;
     const idx = target.dataset.index;
     const value = $(target).val();
-    let currentData = Object.values(this.item.data.data.progress[target.dataset.type]) ?? [];
+    let currentData = Object.values(this.item.system.progress[target.dataset.type]) ?? [];
     const selectedAbility = this.actor.items.get(value);
     const data = {
       id: selectedAbility.id,
       name: selectedAbility.name,
-      category: selectedAbility.data.data.category,
-      currentXp: selectedAbility.data.data.xp,
-      xpNextLevel: selectedAbility.data.data.experienceNextLevel,
-      xp: 0
+      category: selectedAbility.system.category,
+      currentXp: selectedAbility.system.xp,
+      xpNextLevel: selectedAbility.system.experienceNextLevel,
+      xp: 0,
+      teacherScore: Object.values(
+        this.item.system.ownedAbilities[selectedAbility.system.category]
+      ).find(e => {
+        return e.key === selectedAbility.system.key && e.option === selectedAbility.system.option;
+      }).teacherScore
     };
     currentData[idx] = data;
-    updateData[`data.progress.abilities`] = currentData;
+    updateData[`system.progress.abilities`] = currentData;
     return this.submit({ preventClose: true, updateData: updateData }).then(() => this.render());
   }
 
@@ -578,13 +936,16 @@ export class ArM5eItemDiarySheet extends ArM5eItemSheet {
     const target = event.currentTarget;
     const idx = target.dataset.index;
     const value = $(target).val();
-    let currentData = Object.values(this.item.data.data.progress[target.dataset.type]) ?? [];
+    let currentData = Object.values(this.item.system.progress[target.dataset.type]) ?? [];
     const data = {
       key: value,
-      xp: 0
+      xp: 0,
+      teacherScore: this.item.system.ownedArts.find(e => {
+        return e.key === value;
+      }).teacherScore
     };
     currentData[idx] = data;
-    updateData[`data.progress.arts`] = currentData;
+    updateData[`system.progress.arts`] = currentData;
     return this.submit({ preventClose: true, updateData: updateData }).then(() => this.render());
   }
 }

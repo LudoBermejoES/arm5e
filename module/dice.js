@@ -13,7 +13,7 @@ async function simpleDie(html, actor, type = "DEFAULT", callBack) {
   //console.log(actorData);
   let flavorTxt = `<p>${game.i18n.localize("arm5e.dialog.button.simpledie")}:</p>`;
   let details = putInFoldableLink("arm5e.sheet.label.details", flavorTxt + rollData.details);
-  let conf = actor.data.data.con.score;
+  let conf = actor.system.con.score;
 
   if ((getRollTypeProperties(type).MODE & ROLL_MODES.NO_CONF) != 0) {
     conf = 0;
@@ -23,13 +23,14 @@ async function simpleDie(html, actor, type = "DEFAULT", callBack) {
   if (rollData.magic.divide > 1) {
     formula = "(1D10+" + rollData.formula + ")/" + rollData.magic.divide;
   }
-  const dieRoll = new Roll(formula, actor.data.data);
+  const dieRoll = new Roll(formula, actor.system);
   let tmp = await dieRoll.roll({
     async: true
   });
 
-  let rollMode = CONST.DICE_ROLL_MODES.PUBLIC;
-  if (getRollTypeProperties(type).MODE & ROLL_MODES.PRIVATE || actor.data.type != "player") {
+  // let rollMode = CONST.DICE_ROLL_MODES.PUBLIC;
+  let rollMode = game.settings.get("core", "rollMode");
+  if (getRollTypeProperties(type).MODE & ROLL_MODES.PRIVATE || actor.type != "player") {
     rollMode = CONST.DICE_ROLL_MODES.PRIVATE;
   }
   const flags = {
@@ -77,7 +78,7 @@ async function stressDie(html, actor, modes = 0, callBack, type = "DEFAULT") {
   let dieRoll = await explodingRoll(actor, modes);
 
   let lastRoll;
-  let confAllowed = actor.data.data.con.score;
+  let confAllowed = actor.system.con.score;
 
   if ((getRollTypeProperties(type).MODE & ROLL_MODES.NO_CONF) != 0) {
     confAllowed = 0;
@@ -101,8 +102,12 @@ async function stressDie(html, actor, modes = 0, callBack, type = "DEFAULT") {
   lastRoll = multiplyRoll(mult, dieRoll, formula, rollData.magic.divide);
 
   let rollOptions = {};
-  let rollMode = CONST.DICE_ROLL_MODES.PUBLIC;
-  if (getRollTypeProperties(type).MODE & ROLL_MODES.PRIVATE || actor.data.type != "player") {
+
+  //
+  // let rollMode = CONST.DICE_ROLL_MODES.PUBLIC;
+
+  let rollMode = game.settings.get("core", "rollMode");
+  if (getRollTypeProperties(type).MODE & ROLL_MODES.PRIVATE || actor.type != "player") {
     rollMode = CONST.DICE_ROLL_MODES.PRIVATE;
   }
 
@@ -139,10 +144,11 @@ function getFormData(html, actor) {
   }
   find = html.find(".SelectedAbility");
   if (find.length > 0) {
-    if (find[0].value == 999) {
+    if (find[0].value == "None") {
       actor.rollData.ability.score = 0;
     } else {
-      actor.rollData.ability.score = find[0].value;
+      actor.items.get(find[0].value);
+      actor.rollData.ability.score = actor.items.get(find[0].value).system.finalScore;
     }
   }
 
@@ -156,7 +162,7 @@ function getFormData(html, actor) {
     actor.rollData.magic.technique = find[0].value;
     actor.rollData.magic.techniqueLabel = ARM5E.magic.techniques[find[0].value].label;
     actor.rollData.magic.techniqueScore = parseInt(
-      actor.data.data.arts.techniques[find[0].value].finalScore
+      actor.system.arts.techniques[find[0].value].finalScore
     );
   }
 
@@ -164,7 +170,7 @@ function getFormData(html, actor) {
   if (find.length > 0) {
     actor.rollData.magic.form = find[0].value;
     actor.rollData.magic.formLabel = ARM5E.magic.forms[find[0].value].label;
-    actor.rollData.magic.formScore = parseInt(actor.data.data.arts.forms[find[0].value].finalScore);
+    actor.rollData.magic.formScore = parseInt(actor.system.arts.forms[find[0].value].finalScore);
   }
 
   find = html.find(".SelectedAura");
@@ -224,7 +230,7 @@ function getRollFormula(actor) {
   let value = 0;
   let msg = "";
   const rollData = actor.rollData;
-  let actorSystemData = actor.data.data;
+  let actorSystemData = actor.system;
   if (rollData.type == "spell" || rollData.type == "magic" || rollData.type == "spont") {
     let valueTech = 0;
     let valueForm = 0;
@@ -397,7 +403,7 @@ function getRollFormula(actor) {
   if (rollData.bonuses) {
     total += rollData.bonuses;
     msg = newLineAdd(msg);
-    msg += game.i18n.localize("arm5.sheet.bonuses") + " (" + rollData.bonuses + ")";
+    msg += game.i18n.localize("arm5e.sheet.bonuses.label") + " (" + rollData.bonuses + ")";
   }
   // TODO
   // if (actorData.roll.bonus > 0) {
@@ -526,10 +532,13 @@ async function explodingRoll(actorData, modes = 0) {
     let withDialog =
       funRolls == "EVERYONE" || (funRolls == "PLAYERS_ONLY" && actorData.hasPlayerOwner);
     if (withDialog) {
-      let data = {
+      let dialogData = {
         msg: game.i18n.localize("arm5e.dialog.roll.exploding.multiplier") + " : " + mult
       };
-      const html = await renderTemplate("systems/arm5e/templates/generic/explodingRoll.html", data);
+      const html = await renderTemplate(
+        "systems/arm5e/templates/generic/explodingRoll.html",
+        dialogData
+      );
       await new Promise(resolve => {
         new Dialog(
           {
@@ -636,12 +645,13 @@ async function noRoll(html, actor, callBack) {
     }
   };
   let formula = `${rollData.formula}`;
-  let rollMode = CONST.DICE_ROLL_MODES.PUBLIC;
-  if (actor.data.type != "player") {
+  // let rollMode = CONST.DICE_ROLL_MODES.PUBLIC;
+  let rollMode = game.settings.get("core", "rollMode");
+  if (actor.type != "player") {
     rollMode = CONST.DICE_ROLL_MODES.PRIVATE;
   }
 
-  const dieRoll = new Roll(formula, actor.data.data);
+  const dieRoll = new Roll(formula, actor.system);
   let tmp = await dieRoll.roll({
     async: true
   });
@@ -658,7 +668,7 @@ async function noRoll(html, actor, callBack) {
   );
   await checkTargetAndCalculateResistance(actor, dieRoll, message);
   await actor.update({
-    data: { might: { points: actor.data.data.might.points - rollData.power.cost } }
+    system: { might: { points: actor.system.might.points - rollData.power.cost } }
   });
   actor.rollData.reset();
 }

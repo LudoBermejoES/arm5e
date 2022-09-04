@@ -180,12 +180,16 @@ span.player-name {
   border: 2px solid #6f6c66;
 }
 
-.system-arm5e .dialog-buttons {
+.arm5e .dialog-buttons {
   background-color: rgb(236 222 187 / 50%);
 }
 
+.arm5e .art-score input[type="number"] {
+  font-size: 14pt;
+  text-align: center;
+}
+
 .window-app .window-content {
-  display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   justify-content: flex-start;
@@ -196,6 +200,10 @@ span.player-name {
   overflow-x: hidden;
 }
 
+.arm5e .window-app .window-content {
+  display: flex;
+}
+
 .arm5e {
   --color-shadow-primary: rgb(200, 0, 0);
 }
@@ -203,6 +211,15 @@ span.player-name {
 h4.window-title {
   font-family: Blackmoor;
   font-size: 20px;
+}
+
+.arm5e .astrolab.button {
+  font-family: "blackmoor";
+  font-size: 13pt;
+  padding: 5px;
+  width: 140px;
+  margin: 5px;
+  background-image: none;
 }
 
 .arm5e.button {
@@ -451,6 +468,10 @@ h4.window-title {
   border: 0px;
 }
 
+.astrolab-sheet .sheet-body {
+  padding: 40px;
+}
+
 .arm5eEffect .sheet-body {
   height: auto;
   background-image: url("../assets/dialog/Dialog_Background.png");
@@ -483,6 +504,41 @@ h4.window-title {
   background-repeat: repeat-y;
   background-size: cover;
   font-family: "bookAntiquaBold";
+}
+
+.arm5e .astrolab.astrolab-sheet {
+  background-image: url("../assets/astrolab/Astrolab_Background.png");
+  background-repeat: repeat-y;
+}
+
+.arm5e .astrolab.header-background img {
+  border: 0px;
+}
+
+.arm5e .astrolab .header-background {
+  height: 120px;
+  width: 600px;
+  margin: 0px;
+}
+
+.arm5e .astrolab .footer-background img {
+  border: 0px;
+}
+
+.arm5e .astrolab .footer-background {
+  height: 75px;
+  width: 600px;
+  margin: 0px;
+  background-image: none;
+}
+
+.arm5e .astrolab-title {
+  text-align: center;
+  font-family: "blackmoor";
+  font-size: 32pt;
+  height: 45px;
+  border: none;
+  color: #2d3b51;
 }
 
 .arm5eRequisite {
@@ -604,6 +660,15 @@ input[type="time"] {
   user-select: text;
 }
 
+.arm5e .astrolab input[type="text"],
+.arm5e .astrolab input[type="number"] {
+  font-family: "bookAntiqua";
+  font-weight: bold;
+  background: rgba(0, 0, 0, 0.15);
+  height: 25px;
+  background-image: none;
+}
+
 .arm5e select {
   height: 20px;
   background: rgba(0, 0, 0, 0.05);
@@ -612,6 +677,13 @@ input[type="time"] {
   font-family: inherit;
   padding: 0 3px;
   text-overflow: ellipsis;
+}
+
+.arm5e .astrolab select {
+  font-weight: bold;
+  background: rgba(0, 0, 0, 0.15);
+  height: 25px;
+  font-family: "bookAntiqua";
 }
 
 .arm5e .mainPlayer {
@@ -831,6 +903,7 @@ input[type="time"] {
   flex: 0;
   font-family: "bookAntiqua";
   font-size: 12pt;
+  text-align: center;
 }
 
 .arm5e .progresses-list {
@@ -962,6 +1035,13 @@ input[type="time"] {
   position: relative;
 }
 
+input[type="number"].art-score {
+  font-size: 13pt;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.15);
+  box-shadow: 3px 3px 3px rgb(0 0 0 / 28%);
+}
+
 .navItem-right-ball {
   position: absolute;
   border: 0px;
@@ -971,6 +1051,13 @@ input[type="time"] {
 }
 
 .navItem-right-ball img {
+  padding-top: 15px;
+  border: 0px;
+  width: 14px;
+}
+
+.arm5eSubTabs .navItem-right-ball img {
+  padding-top: 0px;
   border: 0px;
   width: 14px;
 }
@@ -984,6 +1071,13 @@ input[type="time"] {
 }
 
 .navItem-left-ball img {
+  padding-top: 15px;
+  border: 0px;
+  width: 14px;
+}
+
+.arm5eSubTabs .navItem-left-ball img {
+  padding-top: 0px;
   border: 0px;
   width: 14px;
 }

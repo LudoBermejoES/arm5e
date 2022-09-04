@@ -1,12 +1,15 @@
 import { log } from "../tools.js";
 import { clearAuraFromActor } from "../helpers/aura.js";
+import { Astrolab } from "../tools/astrolab.js";
 import { ArM5eActiveEffectConfig } from "../helpers/active-effect-config.sheet.js";
 
-export class ArsLayer extends CanvasLayer {
+export class ArsLayer extends InteractionLayer {
   async draw() {
     await super.draw();
     return this;
   }
+
+  async _draw() {}
 
   static async selectAura() {
     let dialogData = {
@@ -27,7 +30,7 @@ export class ArsLayer extends CanvasLayer {
           }
         },
         default: "yes",
-        close: async (html) => {
+        close: async html => {
           let val = html.find('input[name="inputField"]');
 
           if (val.val() !== "") {
@@ -45,10 +48,21 @@ export class ArsLayer extends CanvasLayer {
     ).render(true);
   }
 
+  static async openAstrolab() {
+    let formData = {
+      seasons: CONFIG.ARM5E.seasons,
+      ...game.settings.get("arm5e", "currentDate")
+    };
+    // const html = await renderTemplate("systems/arm5e/templates/generic/astrolab.html", dialogData);
+
+    const astrolab = new Astrolab(formData, {}); // data, options
+    const res = await astrolab.render(true);
+  }
+
   static async clearAura() {
-    game.scenes.viewed.unsetFlag("world", "aura_" + game.scenes.viewed.data._id);
-    game.scenes.viewed.unsetFlag("world", "aura_type_" + game.scenes.viewed.data._id);
-    const tokens = canvas.tokens.placeables.filter((token) => token.actor);
+    game.scenes.viewed.unsetFlag("world", "aura_" + game.scenes.viewed._id);
+    game.scenes.viewed.unsetFlag("world", "aura_type_" + game.scenes.viewed._id);
+    const tokens = canvas.tokens.placeables.filter(token => token.actor);
     for (const token of tokens) {
       clearAuraFromActor(token.actor);
     }
@@ -60,13 +74,13 @@ export function addArsButtons(buttons) {
     name: "ArsMagica",
     title: "ArsMagica",
     layer: "arsmagica",
-    icon: "icon-Icon_Ars",
+    icon: "icon-Tool_Ars",
     visible: game.user.isGM,
     tools: [
       {
         name: "aura",
         title: "Configure Aura",
-        icon: "icon-Icon_Auras",
+        icon: "icon-Tool_Auras",
         visible: true,
         button: true,
         onClick: () => ArsLayer.selectAura()
@@ -74,10 +88,18 @@ export function addArsButtons(buttons) {
       {
         name: "clearAura",
         title: "Clear aura",
-        icon: "icon-Icon_Delete_Perdo2",
+        icon: "icon-Tool_Delete_Perdo2",
         visible: true,
         button: true,
         onClick: () => ArsLayer.clearAura()
+      },
+      {
+        name: "astrolab",
+        title: "Astrolab",
+        icon: "icon-Tool_Astrolab",
+        visible: true,
+        button: true,
+        onClick: () => ArsLayer.openAstrolab()
       }
     ],
     activeTool: "aura"

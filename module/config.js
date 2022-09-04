@@ -1,4 +1,12 @@
-import { validAdventuring, validExposure, validPractice } from "./helpers/long-term-activities.js";
+import {
+  validAdventuring,
+  validExposure,
+  validPractice,
+  validTraining,
+  validTeaching,
+  validChildhood,
+  validTotalXp
+} from "./helpers/long-term-activities.js";
 
 export const ARM5E = {};
 export const ARM5E_DEFAULT_ICONS = {};
@@ -1403,7 +1411,6 @@ ARM5E.activities.generic = {
     display: { legacyXp: true, tab: false, progress: false },
     source: { default: 0, readonly: true },
     maxXp: 0,
-    progressItems: {},
     bonusOptions: null,
     validation: null,
     secondaryFilter: null
@@ -1420,7 +1427,6 @@ ARM5E.activities.generic = {
     },
     source: { default: 5, readonly: false },
     maxXp: 5,
-    progressItems: { max: 0 },
     bonusOptions: null,
     validation: validAdventuring,
     secondaryFilter: null
@@ -1435,9 +1441,8 @@ ARM5E.activities.generic = {
       arts: true,
       spells: true
     },
-    source: { default: 2, readonly: true },
+    source: { default: 2, readonly: false },
     maxXp: 2,
-    progressItems: 2,
     bonusOptions: null,
     validation: validExposure,
     secondaryFilter: null
@@ -1468,16 +1473,16 @@ ARM5E.activities.generic = {
     label: "arm5e.activity.training",
     display: {
       legacyXp: false,
-      tab: false,
+      tab: true,
       progress: true,
       abilities: true,
       arts: false,
       spells: true
     },
-    source: { default: 2, readonly: true },
+    source: { default: null, readonly: true },
     maxXp: 0,
     bonusOptions: null,
-    validation: null,
+    validation: validTraining,
     secondaryFilter: null
   },
   teaching: {
@@ -1490,14 +1495,78 @@ ARM5E.activities.generic = {
       arts: true,
       spells: true
     },
-    source: { default: 2, readonly: true },
+    source: { default: null, readonly: true },
     maxXp: 0,
     bonusOptions: {
       standard: { label: "arm5e.generic.standard", modifier: 0 },
       singleStudent: { label: "Single student", modifier: 6 },
       twoStudents: { label: "Two students", modifier: 3 }
     },
-    validation: null,
+    validation: validTeaching,
+    secondaryFilter: null
+  },
+  hermeticApp: {
+    label: "arm5e.activity.apprenticeship",
+    display: {
+      legacyXp: false,
+      tab: true,
+      progress: true,
+      abilities: true,
+      arts: true,
+      spells: true
+    },
+    source: { default: 240, readonly: false },
+    maxXp: 1000,
+    bonusOptions: null,
+    validation: validTotalXp,
+    secondaryFilter: null
+  },
+  childhood: {
+    label: "arm5e.activity.childhood",
+    display: {
+      legacyXp: false,
+      tab: true,
+      progress: true,
+      abilities: true,
+      arts: false,
+      spells: false
+    },
+    source: { default: 120, readonly: false },
+    maxXp: 1000,
+    bonusOptions: null,
+    validation: validChildhood,
+    secondaryFilter: null
+  },
+  laterLife: {
+    label: "arm5e.activity.laterLife",
+    display: {
+      legacyXp: false,
+      tab: true,
+      progress: true,
+      abilities: true,
+      arts: false,
+      spells: false
+    },
+    source: { default: 15, readonly: false },
+    maxXp: 1000,
+    bonusOptions: null,
+    validation: validTotalXp,
+    secondaryFilter: null
+  },
+  laterLifeMagi: {
+    label: "arm5e.activity.laterLifeMagi",
+    display: {
+      legacyXp: false,
+      tab: true,
+      progress: true,
+      abilities: true,
+      arts: true,
+      spells: true
+    },
+    source: { default: 30, readonly: false },
+    maxXp: 1000,
+    bonusOptions: null,
+    validation: validTotalXp,
     secondaryFilter: null
   },
   aging: {
@@ -1517,6 +1586,9 @@ ARM5E.activities.generic = {
     secondaryFilter: null
   }
 };
+
+ARM5E.books = {};
+ARM5E.books.types = ["Summa", "Tractatus"];
 
 ARM5E.activities.lab = {
   art: "arm5e.lab.art",

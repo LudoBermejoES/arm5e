@@ -8,34 +8,34 @@
       <h1 class="charname"><input name="name" type="text" value="{{item.name}}" placeholder="name" /></h1>
       <div class="grid grid-col">
         <div class="resource">
-          <label>{{localize "arm5e.sheet.year"}}<input type="text" name="data.year" value="{{data.year}}"
-              data-dtype="String" /></label>
+          <label>{{localize "arm5e.sheet.year"}}<input type="number" name="system.year" value="{{system.year}}"
+              data-dtype="Number" /></label>
         </div>
         <div class="resource">
-          <label>{{localize "arm5e.sheet.season"}}</label><select name="data.season" data-type="String"
+          <label>{{localize "arm5e.sheet.season"}}</label><select name="system.season" data-type="String"
             style="width: 100%">
-            {{#select data.season}} {{#each config.seasons as |season key|}}
+            {{#select system.season}} {{#each config.seasons as |season key|}}
                 <option value="{{key}}">{{localize season.label}}</option>
               {{/each}} {{/select}}
           </select>
         </div>
         <div class="resource">
-          <label>{{localize "arm5e.sheet.date"}}<input type="text" name="data.date" value="{{data.date}}"
+          <label>{{localize "arm5e.sheet.date"}}<input type="text" name="system.date" value="{{system.date}}"
               data-dtype="String" /></label>
         </div>
         <div class="resource">
           <label class="header-label">Activity</label>
-          <select class="progress-activity" name="data.activity" data-type="String" style="width: 100%"
-            {{@root.data.disabled}}>
-            {{#select data.activity}} {{#each config.activities.generic as |activity key|}}
+          <select class="progress-activity" name="system.activity" data-type="String" style="width: 100%"
+            {{@root.system.disabled}}>
+            {{#select system.activity}} {{#each config.activities.generic as |activity key|}}
                 <option value="{{key}}">{{localize activity.label}}</option>
               {{/each}} {{/select}}
           </select>
         </div>
         {{#if ui.showLegacyXp}}
           <div class="resource">
-            <label>{{localize "arm5e.sheet.experience"}}<input type="number" name="data.experience"
-                value="{{data.experience}}" data-dtype="Number" /></label>
+            <label>{{localize "arm5e.sheet.experience"}}<input type="number" name="system.experience"
+                value="{{system.experience}}" data-dtype="Number" /></label>
           </div>
         {{/if}}
       </div>
@@ -44,12 +44,12 @@
 
   {{!-- Sheet Tab Navigation --}}
   <nav class="arm5eTabs sheet-tabs tabs" data-group="primary">
-    <a class="item posRelative" data-tab="description">
+    <a class="item posRelative" data-tab="description" data-group="primary">
       <div class="navItem-right-ball"><img src="/systems/arm5e/assets/bLeft.png" /></div>
       <div class="navItem-left-ball"><img src="/systems/arm5e/assets/bRight.png" /></div>
       {{localize "arm5e.sheet.description"}}
     </a>
-    <a class="item posRelative" data-tab="advanced">
+    <a class="item posRelative" data-tab="advanced" data-group="primary">
       <div class="navItem-right-ball"><img src="/systems/arm5e/assets/bLeft.png" /></div>
       <div class="navItem-left-ball"><img src="/systems/arm5e/assets/bRight.png" /></div>
       {{localize "arm5e.sheet.advanced"}}
@@ -60,7 +60,7 @@
   <section class="sheet-body">
     {{!-- Description Tab --}}
     <div class="tab" data-group="primary" data-tab="description">
-      {{editor content=data.description target="data.description" button=true owner=owner editable=editable}}
+      {{editor system.description target="system.description" button=true owner=owner editable=editable}}
     </div>
     {{!-- Advanced Tab --}}
     <div class="tab" data-group="primary" data-tab="advanced">
